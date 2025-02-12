@@ -41,5 +41,14 @@ async def analyze_query(query: Query):
 async def health_check():
     return {"status": "healthy", "rag_engine": "initialized"}
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://rag-challenge.streamlit.app/"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(router, prefix="/api")
