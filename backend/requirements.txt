@@ -1,4 +1,4 @@
-fastapi
+"fastapi[standard]"
 uvicorn==0.24.0
 python-multipart==0.0.6
 langchain==0.0.350
