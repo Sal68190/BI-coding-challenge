@@ -1,10 +1,21 @@
 from fastapi import APIRouter, HTTPException, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from rag import RAGEngine
 
-router = APIRouter()
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+router = APIRouter()
 rag_engine = RAGEngine()
 
 class Query(BaseModel):
@@ -41,14 +52,11 @@ async def analyze_query(query: Query):
 async def health_check():
     return {"status": "healthy", "rag_engine": "initialized"}
 
-from fastapi.middleware.cors import CORSMiddleware
+# Add root route
+@app.get("/")
+async def root():
+    return {"message": "Welcome to RAG API"}
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://rag-challenge.streamlit.app/"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# Include router with prefix
 app.include_router(router, prefix="/api")
+
