@@ -81,7 +81,7 @@ def query_backend(query: str) -> Dict[str, Any]:
     """Send query to FastAPI backend and return response"""
     try:
         response = requests.post(
-            "http://localhost:8000/api/analyze",
+            "https://bi-coding-challenge.onrender.com/api/analyze",
             json={"text": query, "filters": None}
         )
         response.raise_for_status()
