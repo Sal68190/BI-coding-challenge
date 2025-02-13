@@ -92,8 +92,8 @@ st.markdown("""
         font-weight: 600;
     }
     .document-content {
-        color: #1F2937 !important;
-        background-color: #1F2937;
+        color: #778ca8 !important;
+        background-color: #422a38;
         padding: 1rem;
         margin: 0.5rem 0;
         border-radius: 0.5rem;
