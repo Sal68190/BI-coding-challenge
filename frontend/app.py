@@ -1,8 +1,41 @@
-import streamlit as st
-import requests
-import pandas as pd
-import plotly.express as px
-from typing import Dict, Any
+# Load environment variables
+load_dotenv()
+
+# Get API URL from environment variable or use default
+API_URL = os.getenv("API_URL", "https://bi-coding-challenge.onrender.com/")  # Replace with your actual deployed backend URL
+
+def query_backend(query: str) -> Dict[str, Any]:
+    """Send query to FastAPI backend and return response"""
+    try:
+        # Add error handling and timeout
+        response = requests.post(
+            f"{API_URL}/api/analyze",
+            json={"text": query, "filters": None},
+            timeout=30,  # Increased timeout for cold starts
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.Timeout:
+        st.error("Request timed out. The server might be starting up (cold start). Please try again.")
+        return None
+    except requests.exceptions.ConnectionError:
+        st.error(f"Could not connect to the backend at {API_URL}. Please check if the server is running.")
+        return None
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error communicating with backend: {str(e)}")
+        return None
+
+# Add backend status check
+def check_backend_health():
+    try:
+        response = requests.get(f"{API_URL}/health", timeout=5)
+        return response.status_code == 200
+    except:
+   
 
 # Configure the page
 st.set_page_config(
