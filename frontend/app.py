@@ -56,7 +56,7 @@ st.markdown("""
         padding: 0.5rem;
     }
     .user-query {
-        background-color: #f0f2f6;
+        background-color: #122a40;
         padding: 1rem;
         border-radius: 0.5rem;
         margin-bottom: 1rem;
@@ -64,7 +64,7 @@ st.markdown("""
     .source-text {
         font-size: 0.9em;
         padding: 1rem;
-        background-color: white;
+        background-color: #488299;
         border-left: 3px solid #0066cc;
         margin: 0.5rem 0;
         color: #1F2937;
@@ -72,7 +72,7 @@ st.markdown("""
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
     .metric-card {
-        background-color: white;
+        background-color: #488299;
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 0.5rem 0;
@@ -84,7 +84,7 @@ st.markdown("""
         border: 1px solid #E5E7EB;
     }
     .stExpander .streamlit-expanderContent {
-        background-color: white;
+        background-color: #122a40;
         color: #1F2937;
     }
     .confidence-score {
