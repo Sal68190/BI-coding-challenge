@@ -18,7 +18,7 @@ load_dotenv()
 # Get API URL from environment variable or use default
 API_URL = os.getenv("API_URL", "https://bi-coding-challenge.onrender.com")
 
-# Rest of your imports and setup code...
+# Rest of the imports and setup code...
 
 # In the visualization section, modify the code to handle missing plotly:
 with col2:
