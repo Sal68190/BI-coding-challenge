@@ -1,17 +1,52 @@
 import streamlit as st
 import requests
 import pandas as pd
-import plotly.express as px
 from typing import Dict, Any
+from datetime import datetime
 
-# Configure the page
+# Configure the page 
 st.set_page_config(
     page_title="Market Research RAG Analysis",
     page_icon="📊",
     layout="wide"
 )
 
-# Custom CSS with improved text visibility
+# Backend URL
+API_URL = "https://bi-coding-challenge.onrender.com"
+
+def query_backend(query: str) -> Dict[str, Any]:
+    """Send query to backend and return response"""
+    try:
+        response = requests.post(
+            f"{API_URL}/api/analyze",
+            json={"text": query},
+            timeout=30,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.Timeout:
+        st.error("Request timed out. The server might be starting up (cold start). Please try again.")
+        return None
+    except requests.exceptions.ConnectionError:
+        st.error(f"Could not connect to the backend. Please check if the server is running.")
+        return None
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error communicating with backend: {str(e)}")
+        return None
+
+def check_backend_health():
+    """Check if backend is healthy"""
+    try:
+        response = requests.get(f"{API_URL}/health", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
+# Custom CSS
 st.markdown("""
 <style>
     .main {
@@ -26,36 +61,36 @@ st.markdown("""
         border-radius: 0.5rem;
         margin-bottom: 1rem;
     }
-    
-    /* Source viewer styles */
-    .source-viewer {
+    .source-text {
+        font-size: 0.9em;
+        padding: 1rem;
         background-color: white;
+        border-left: 3px solid #0066cc;
+        margin: 0.5rem 0;
         color: #1F2937;
+        border-radius: 0.25rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    .metric-card {
+        background-color: white;
         padding: 1rem;
         border-radius: 0.5rem;
-        border: 1px solid #E5E7EB;
-        margin-bottom: 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    
-    /* Expander styles */
     .stExpander {
         background-color: white;
+        border-radius: 0.5rem;
+        border: 1px solid #E5E7EB;
     }
     .stExpander .streamlit-expanderContent {
         background-color: white;
         color: #1F2937;
     }
-    
-    /* PDF viewer styles */
-    .pdf-viewer {
-        background-color: white;
-        color: #1F2937;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid #E5E7EB;
+    .confidence-score {
+        color: #059669;
+        font-weight: 600;
     }
-    
-    /* Document content styles */
     .document-content {
         color: #1F2937 !important;
         background-color: white;
@@ -64,12 +99,6 @@ st.markdown("""
         border-radius: 0.5rem;
         border: 1px solid #E5E7EB;
     }
-    
-    /* Confidence score styles */
-    .confidence-score {
-        color: #059669;
-        font-weight: 600;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -77,116 +106,143 @@ st.markdown("""
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-def query_backend(query: str) -> Dict[str, Any]:
-    """Send query to FastAPI backend and return response"""
-    try:
-        response = requests.post(
-            "https://bi-coding-challenge.onrender.com/api/analyze",
-            json={"text": query, "filters": None}
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error communicating with backend: {str(e)}")
-        return None
-
-def display_chat_history():
-    """Display chat history with improved source visibility"""
-    if 'chat_history' not in st.session_state or not st.session_state.chat_history:
-        st.warning("No chat history found")
-        return
-    
-    for item in reversed(st.session_state.chat_history):
-        with st.container():
-            # Question
-            st.markdown('<div class="user-query">', unsafe_allow_html=True)
-            st.markdown(f"**Your Question:**")
-            st.markdown(f"_{item['query']}_")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Analysis
-            st.markdown("**Analysis:**")
-            if 'response' in item and 'answer' in item['response']:
-                st.markdown(item['response']['answer'])
-            else:
-                st.error("Response format incorrect")
-            
-            # Sources
-            with st.expander("View Sources"):
-                if 'response' in item and 'sources' in item['response']:
-                    for source in item['response']['sources']:
-                        st.markdown(f"""
-                            <div class="source-viewer">
-                                <div class="document-content">
-                                    {source['text']}
-                                </div>
-                                <div style="margin-top: 0.5rem;">
-                                    <em>Source: {source['document']}</em>
-                                    <span class="confidence-score">
-                                        (Confidence: {source['confidence']:.2f})
-                                    </span>
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.info("No sources available for this response")
-
-# Main layout
+# Header
 st.title("📊 Market Research Analysis Platform")
 
 # Sidebar
 with st.sidebar:
     st.header("Settings")
-    temperature = st.slider("Analysis Depth", 0.0, 1.0, 0.7)
+    
+    # Backend status indicator
+    backend_status = check_backend_health()
+    if backend_status:
+        st.success("Backend: Connected")
+    else:
+        st.error("Backend: Not Connected")
+        st.info("If the backend is not responding, it might be in cold start mode. Please wait a moment and try again.")
+    
     st.divider()
-    st.header("Filters")
-    date_range = st.date_input("Date Range", [])
+    
+    # Clear history button
+    if st.button("Clear History", type="secondary"):
+        st.session_state.chat_history = []
+        st.success("Chat history cleared!")
+    
     st.divider()
     st.markdown("### About")
     st.markdown("""
-    This web app uses RAG (Retrieval Augmented Generation) to analyze market research reports.
+    This platform uses RAG (Retrieval Augmented Generation) to analyze market research reports.
     Ask questions about the reports and get AI-powered insights with source citations.
+    
+    Features:
+    - 🤖 AI-powered analysis
+    - 📊 Visual insights
+    - 📝 Source citations
+    - 🔍 Semantic search
     """)
 
-# Main content area
+# Main content
 col1, col2 = st.columns([2, 1])
 
 with col1:
     st.header("Analysis Interface")
-    query = st.text_input("Ask a question about the market research reports:", 
-                         placeholder="e.g., What are the key market trends identified in both reports?")
+    query = st.text_input(
+        "Ask a question about the market research reports:", 
+        placeholder="e.g., What are the key market trends identified in both reports?",
+        key="query_input"
+    )
     
     if st.button("Analyze", type="primary"):
-        with st.spinner("Analyzing..."):
-            if query:
+        if not query:
+            st.warning("Please enter a question to analyze.")
+        else:
+            with st.spinner("Analyzing... This might take a moment on cold start."):
                 response = query_backend(query)
                 if response:
                     st.session_state.chat_history.append({
                         "query": query,
-                        "response": response
+                        "response": response,
+                        "timestamp": datetime.now().strftime("%H:%M:%S")
                     })
-    
+
     # Display chat history
-    display_chat_history()
+    for item in reversed(st.session_state.chat_history):
+        with st.container():
+            st.markdown("#### Question:")
+            st.info(item["query"])
+            
+            if "timestamp" in item:
+                st.caption(f"Asked at {item['timestamp']}")
+            
+            st.markdown("#### Analysis:")
+            st.write(item["response"]["answer"])
+            
+            with st.expander("View Sources"):
+                for idx, source in enumerate(item["response"]["sources"], 1):
+                    st.markdown(f"""
+                        <div class="source-text">
+                            <strong>Source {idx}:</strong><br>
+                            <div class="document-content">
+                                {source["text"]}
+                            </div>
+                            <div style="margin-top: 0.5rem; font-size: 0.8em;">
+                                <em>Document: {source['document']}</em>
+                                <span class="confidence-score">
+                                    &nbsp;|&nbsp;Confidence: {source['confidence']:.2%}
+                                </span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
 with col2:
     st.header("Insights Dashboard")
     if st.session_state.chat_history:
-        # Confidence scores visualization
-        st.subheader("Confidence Scores")
+        # Analytics
+        metrics_col1, metrics_col2 = st.columns(2)
+        with metrics_col1:
+            st.metric("Total Queries", len(st.session_state.chat_history))
+        
+        # Create confidence data
         confidence_data = pd.DataFrame([
-            {"query": item["query"][:30] + "...", 
-             "confidence": item["response"]["confidence"]}
-            for item in st.session_state.chat_history
+            {
+                "Query": f"Q{i+1}",
+                "Confidence": sum(s['confidence'] for s in item["response"]["sources"]) / len(item["response"]["sources"]),
+            }
+            for i, item in enumerate(reversed(st.session_state.chat_history))
         ])
-        fig = px.bar(confidence_data, x="query", y="confidence",
-                    title="Analysis Confidence Scores")
-        st.plotly_chart(fig, use_container_width=True)
+        
+        # Average confidence
+        with metrics_col2:
+            avg_confidence = confidence_data["Confidence"].mean()
+            st.metric("Average Confidence", f"{avg_confidence:.2%}")
+        
+        # Confidence visualization
+        st.subheader("Confidence Trend")
+        st.line_chart(
+            confidence_data.set_index("Query")["Confidence"],
+            use_container_width=True
+        )
+        
+        # Query details
+        st.subheader("Recent Queries")
+        details_df = pd.DataFrame([
+            {
+                "Time": item.get("timestamp", "N/A"),
+                "Query": item["query"][:40] + "..." if len(item["query"]) > 40 else item["query"],
+                "Avg. Confidence": f"{sum(s['confidence'] for s in item['response']['sources']) / len(item['response']['sources']):.2%}"
+            }
+            for item in reversed(st.session_state.chat_history[-5:])
+        ])
+        st.dataframe(
+            details_df,
+            use_container_width=True,
+            hide_index=True
+        )
 
 # Footer
 st.divider()
 st.markdown("""
 <div style='text-align: center'>
-    <small>Made with ❤️ by Your Name</small>
+    <small>Made with ❤️ by Saloni Deshpande</small>
 </div>
 """, unsafe_allow_html=True)
