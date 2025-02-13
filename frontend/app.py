@@ -64,7 +64,7 @@ st.markdown("""
     .source-text {
         font-size: 0.9em;
         padding: 1rem;
-        background-color: #01080f;
+        background-color: #301d28;
         border-left: 3px solid #4d2525;
         margin: 0.5rem 0;
         color: #414a57;
