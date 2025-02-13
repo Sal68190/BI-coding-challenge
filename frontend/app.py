@@ -129,9 +129,21 @@ st.markdown("""
         border-radius: 0.5rem;
         border: 1px solid #01080f;
     }
+    .stats-container {
+        background-color: #122a40;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+    }
+    .chart-container {
+        background-color: #1f2937;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+        border: 1px solid #363c45;
+    }
 </style>
 """, unsafe_allow_html=True)
-
 
 # Initialize session state
 if 'chat_history' not in st.session_state:
@@ -140,7 +152,7 @@ if 'chat_history' not in st.session_state:
 # Header
 st.title("📊 Market Research Analysis Platform")
 
-# Sidebar
+# Sidebar content (unchanged)
 with st.sidebar:
     st.header("Settings")
     
@@ -188,6 +200,7 @@ with st.sidebar:
 # Main content
 col1, col2 = st.columns([2, 1])
 
+# Analysis Interface (col1 content unchanged)
 with col1:
     st.header("Analysis Interface")
     query = st.text_input(
@@ -216,7 +229,6 @@ with col1:
             st.markdown("#### Question:")
             st.info(item["query"])
             
-            # Show timestamp if available
             if "timestamp" in item:
                 st.caption(f"Asked at {item['timestamp']}")
             
@@ -231,50 +243,143 @@ with col1:
                     st.caption(f"Document: {source['document']} | Confidence: {source['confidence']:.2%}")
                     st.divider()
 
+# Enhanced Insights Dashboard (col2)
 with col2:
     st.header("Insights Dashboard")
     if st.session_state.chat_history:
-        # Analytics
-        metrics_col1, metrics_col2 = st.columns(2)
-        with metrics_col1:
-            st.metric("Total Queries", len(st.session_state.chat_history))
+        # Summary Statistics
+        with st.container():
+            st.markdown('<div class="stats-container">', unsafe_allow_html=True)
+            st.subheader("Summary Stats")
+            metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
+            
+            with metrics_col1:
+                st.metric(
+                    "Total Queries",
+                    len(st.session_state.chat_history)
+                )
+            
+            with metrics_col2:
+                # Calculate average confidence
+                confidence_values = [
+                    item["response"].get("confidence", 0.95)
+                    for item in st.session_state.chat_history
+                ]
+                avg_confidence = sum(confidence_values) / len(confidence_values)
+                st.metric(
+                    "Avg Confidence",
+                    f"{avg_confidence:.1%}"
+                )
+            
+            with metrics_col3:
+                # Calculate unique documents referenced
+                unique_docs = set()
+                for item in st.session_state.chat_history:
+                    for source in item["response"]["sources"]:
+                        unique_docs.add(source["document"])
+                st.metric(
+                    "Docs Referenced",
+                    len(unique_docs)
+                )
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # Enhanced Visualizations
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.subheader("Analysis Trends")
         
-        # Create confidence data
-        confidence_data = pd.DataFrame([
+        # Create trend data
+        trend_data = pd.DataFrame([
             {
-                "Query": f"Q{i+1}",
+                "Query Number": i + 1,
+                "Timestamp": item.get("timestamp", "N/A"),
                 "Confidence": item["response"].get("confidence", 0.95),
+                "Query": item["query"][:30] + "..." if len(item["query"]) > 30 else item["query"]
             }
-            for i, item in enumerate(reversed(st.session_state.chat_history))
+            for i, item in enumerate(st.session_state.chat_history)
         ])
         
-        # Average confidence
-        with metrics_col2:
-            avg_confidence = confidence_data["Confidence"].mean()
-            st.metric("Average Confidence", f"{avg_confidence:.2%}")
-        
-        # Confidence visualization using Streamlit's native chart
-        st.subheader("Confidence Trend")
+        # Confidence trend chart
         st.line_chart(
-            confidence_data.set_index("Query")["Confidence"],
+            trend_data,
+            x="Query Number",
+            y="Confidence",
             use_container_width=True
         )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Source Analysis
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.subheader("Source Distribution")
         
-        # Query details
+        # Calculate source statistics
+        source_counts = {}
+        for item in st.session_state.chat_history:
+            for source in item["response"]["sources"]:
+                doc = source["document"]
+                source_counts[doc] = source_counts.get(doc, 0) + 1
+        
+        # Create source distribution dataframe
+        source_data = pd.DataFrame([
+            {"Document": doc, "Citations": count}
+            for doc, count in source_counts.items()
+        ]).sort_values("Citations", ascending=True)
+        
+        # Plot source distribution
+        st.bar_chart(
+            source_data.set_index("Document"),
+            use_container_width=True
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Recent Queries Table
+        st.markdown('<div class="stats-container">', unsafe_allow_html=True)
         st.subheader("Recent Queries")
+        
         details_df = pd.DataFrame([
             {
                 "Time": item.get("timestamp", "N/A"),
-                "Query": item["query"][:40] + "...",
-                "Confidence": f"{item['response'].get('confidence', 0.95):.2%}"
+                "Query": item["query"][:40] + "..." if len(item["query"]) > 40 else item["query"],
+                "Confidence": f"{item['response'].get('confidence', 0.95):.1%}",
+                "Sources": len(item["response"]["sources"])
             }
-            for item in reversed(st.session_state.chat_history[-5:])  # Show last 5 queries
+            for item in reversed(st.session_state.chat_history[-5:])
         ])
+        
         st.dataframe(
             details_df,
             use_container_width=True,
-            hide_index=True
+            hide_index=True,
+            column_config={
+                "Time": st.column_config.TextColumn(
+                    "Time",
+                    width="small",
+                ),
+                "Query": st.column_config.TextColumn(
+                    "Query",
+                    width="medium",
+                ),
+                "Confidence": st.column_config.TextColumn(
+                    "Confidence",
+                    width="small",
+                ),
+                "Sources": st.column_config.NumberColumn(
+                    "Sources Used",
+                    width="small",
+                )
+            }
         )
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        # Empty state
+        st.info("Ask some questions to see insights and analytics!")
+        
+        st.markdown("#### Example Questions:")
+        st.markdown("""
+        - What are the main market trends discussed in the reports?
+        - What are the key challenges mentioned?
+        - Which companies are the major players?
+        - What growth projections are mentioned?
+        """)
 
 # Footer
 st.divider()
