@@ -85,14 +85,14 @@ st.markdown("""
     }
     .stExpander .streamlit-expanderContent {
         background-color: #422a38;
-        color: #1F2937;
+        color: white;
     }
     .confidence-score {
         color: #4d2525;
         font-weight: 600;
     }
     .document-content {
-        color:  #4d2525 !important;
+        color: #01080f !important;
         background-color: #422a38;
         padding: 1rem;
         margin: 0.5rem 0;
