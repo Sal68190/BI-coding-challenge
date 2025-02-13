@@ -1,37 +1,27 @@
 import streamlit as st
+import requests
+import pandas as pd
+import plotly.express as px
+from typing import Dict, Any
+from datetime import datetime
 
-# Configure the page - THIS MUST BE THE FIRST STREAMLIT COMMAND
+# Configure the page 
 st.set_page_config(
     page_title="Market Research RAG Analysis",
     page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
-
-# Now import other libraries
-import requests
-import pandas as pd
-import os
-from datetime import datetime
-
-# Safely import plotly
-try:
-    import plotly.express as px
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
-    st.warning("Visualization library not available. Some features may be limited.")
 
 # Get API URL from environment variable or use default
 API_URL = "https://bi-coding-challenge.onrender.com"
 
-def query_backend(query: str):
+def query_backend(query: str) -> Dict[str, Any]:
     """Send query to FastAPI backend and return response"""
     try:
         response = requests.post(
             f"{API_URL}/api/analyze",
             json={"text": query, "filters": None},
-            timeout=30,  # Increased timeout for cold starts
+            timeout=30,
             headers={
                 "Content-Type": "application/json",
                 "Accept": "application/json"
@@ -40,7 +30,7 @@ def query_backend(query: str):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.Timeout:
-        st.error("Request timed out. The server might be starting up (cold start). Please try again in a few moments.")
+        st.error("Request timed out. The server might be starting up (cold start). Please try again.")
         return None
     except requests.exceptions.ConnectionError:
         st.error(f"Could not connect to the backend. Please check if the server is running.")
@@ -72,16 +62,17 @@ st.markdown("""
         border-radius: 0.5rem;
         margin-bottom: 1rem;
     }
-    .stAlert {
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border-radius: 0.5rem;
-    }
     .source-text {
         font-size: 0.9em;
         padding: 0.5rem;
         background-color: #f8f9fa;
         border-left: 3px solid #6c757d;
+        margin: 0.5rem 0;
+    }
+    .metric-card {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.5rem;
         margin: 0.5rem 0;
     }
 </style>
@@ -90,11 +81,9 @@ st.markdown("""
 # Initialize session state
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
-if 'last_query_time' not in st.session_state:
-    st.session_state.last_query_time = None
 
 # Header
-st.title("📊 Market Research RAG Analysis")
+st.title("📊 Market Research Analysis Platform")
 
 # Sidebar
 with st.sidebar:
@@ -138,15 +127,12 @@ col1, col2 = st.columns([2, 1])
 
 with col1:
     st.header("Analysis Interface")
-    
-    # Query input
     query = st.text_input(
-        "Ask a question about the market research reports:",
+        "Ask a question about the market research reports:", 
         placeholder="e.g., What are the key market trends identified in both reports?",
         key="query_input"
     )
     
-    # Analysis button
     if st.button("Analyze", type="primary"):
         if not query:
             st.warning("Please enter a question to analyze.")
@@ -154,29 +140,26 @@ with col1:
             with st.spinner("Analyzing... This might take a moment on cold start."):
                 response = query_backend(query)
                 if response:
-                    # Add timestamp to chat history
+                    # Add to chat history with timestamp
                     st.session_state.chat_history.append({
                         "query": query,
                         "response": response,
                         "timestamp": datetime.now().strftime("%H:%M:%S")
                     })
-                    st.session_state.last_query_time = datetime.now()
-    
+
     # Display chat history
     for item in reversed(st.session_state.chat_history):
         with st.container():
-            # Query
             st.markdown("#### Question:")
             st.info(item["query"])
             
-            # Timestamp
-            st.caption(f"Asked at {item['timestamp']}")
+            # Show timestamp if available
+            if "timestamp" in item:
+                st.caption(f"Asked at {item['timestamp']}")
             
-            # Analysis
             st.markdown("#### Analysis:")
             st.write(item["response"]["answer"])
             
-            # Sources
             with st.expander("View Sources"):
                 for idx, source in enumerate(item["response"]["sources"], 1):
                     st.markdown(f"**Source {idx}:**")
@@ -189,60 +172,65 @@ with col2:
     st.header("Insights Dashboard")
     if st.session_state.chat_history:
         # Analytics
-        st.metric(
-            "Total Queries",
-            len(st.session_state.chat_history)
-        )
+        metrics_col1, metrics_col2 = st.columns(2)
+        with metrics_col1:
+            st.metric("Total Queries", len(st.session_state.chat_history))
         
-        if PLOTLY_AVAILABLE:
-            try:
-                # Confidence visualization
-                st.subheader("Confidence Scores")
-                confidence_data = pd.DataFrame([
-                    {
-                        "Query": f"Q{i+1}",
-                        "Confidence": item["response"].get("confidence", 0.95),
-                        "Question": item["query"][:30] + "..."
-                    }
-                    for i, item in enumerate(reversed(st.session_state.chat_history))
-                ])
-                
-                fig = px.line(
-                    confidence_data,
-                    x="Query",
-                    y="Confidence",
-                    title="Analysis Confidence Trend",
-                    hover_data=["Question"]
-                )
-                fig.update_layout(
-                    hovermode='x unified',
-                    yaxis_range=[0, 1]
-                )
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Average confidence
-                avg_confidence = confidence_data["Confidence"].mean()
-                st.metric(
-                    "Average Confidence",
-                    f"{avg_confidence:.2%}"
-                )
-                
-            except Exception as e:
-                st.error("Error creating visualization")
-                st.write("Raw Data:")
-                st.dataframe(confidence_data)
-        else:
-            # Fallback to basic Streamlit chart
-            confidence_data = pd.DataFrame([
-                {"Query": f"Q{i+1}", "Confidence": item["response"].get("confidence", 0.95)}
-                for i, item in enumerate(st.session_state.chat_history)
-            ])
-            st.bar_chart(confidence_data.set_index("Query")["Confidence"])
+        # Create confidence data
+        confidence_data = pd.DataFrame([
+            {
+                "Query": f"Q{i+1}",
+                "Confidence": item["response"].get("confidence", 0.95),
+                "Question": item["query"][:30] + "..."
+            }
+            for i, item in enumerate(reversed(st.session_state.chat_history))
+        ])
+        
+        # Confidence visualization
+        st.subheader("Confidence Trend")
+        try:
+            fig = px.line(
+                confidence_data,
+                x="Query",
+                y="Confidence",
+                title="Analysis Confidence Trend",
+                hover_data=["Question"]
+            )
+            fig.update_layout(
+                hovermode='x unified',
+                yaxis_range=[0, 1],
+                height=300
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception:
+            # Fallback to simple line chart
+            st.line_chart(confidence_data.set_index("Query")["Confidence"])
+        
+        # Average confidence
+        with metrics_col2:
+            avg_confidence = confidence_data["Confidence"].mean()
+            st.metric("Average Confidence", f"{avg_confidence:.2%}")
+        
+        # Query details
+        st.subheader("Recent Queries")
+        details_df = pd.DataFrame([
+            {
+                "Time": item.get("timestamp", "N/A"),
+                "Query": item["query"][:40] + "...",
+                "Confidence": f"{item['response'].get('confidence', 0.95):.2%}"
+            }
+            for item in reversed(st.session_state.chat_history[-5:])  # Show last 5 queries
+        ])
+        st.dataframe(
+            details_df,
+            use_container_width=True,
+            hide_index=True
+        )
 
 # Footer
 st.divider()
 st.markdown("""
 <div style='text-align: center'>
-    <small>Market Research RAG Analysis Platform | Made with ❤️ by Saloni Deshpande</small>
+    <small> Made with ❤️ by Saloni Deshpande</small>
 </div>
 """, unsafe_allow_html=True)
