@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import pandas as pd
-import plotly.express as px
 from typing import Dict, Any
 from datetime import datetime
 
@@ -181,35 +180,21 @@ with col2:
             {
                 "Query": f"Q{i+1}",
                 "Confidence": item["response"].get("confidence", 0.95),
-                "Question": item["query"][:30] + "..."
             }
             for i, item in enumerate(reversed(st.session_state.chat_history))
         ])
-        
-        # Confidence visualization
-        st.subheader("Confidence Trend")
-        try:
-            fig = px.line(
-                confidence_data,
-                x="Query",
-                y="Confidence",
-                title="Analysis Confidence Trend",
-                hover_data=["Question"]
-            )
-            fig.update_layout(
-                hovermode='x unified',
-                yaxis_range=[0, 1],
-                height=300
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception:
-            # Fallback to simple line chart
-            st.line_chart(confidence_data.set_index("Query")["Confidence"])
         
         # Average confidence
         with metrics_col2:
             avg_confidence = confidence_data["Confidence"].mean()
             st.metric("Average Confidence", f"{avg_confidence:.2%}")
+        
+        # Confidence visualization using Streamlit's native chart
+        st.subheader("Confidence Trend")
+        st.line_chart(
+            confidence_data.set_index("Query")["Confidence"],
+            use_container_width=True
+        )
         
         # Query details
         st.subheader("Recent Queries")
