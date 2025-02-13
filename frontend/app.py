@@ -72,7 +72,7 @@ st.markdown("""
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
     .metric-card {
-        background-color: #01080f;
+        background-color: #111c2b;
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 0.5rem 0;
@@ -84,7 +84,7 @@ st.markdown("""
         border: 1px solid #E5E7EB;
     }
     .stExpander .streamlit-expanderContent {
-        background-color: #422a38;
+        background-color: #363c45;
         color: #414a57;
     }
     .confidence-score {
