@@ -8,7 +8,7 @@ Retrieval-Augmented Generation (RAG) combines retrieval-based and generation-bas
 - **Source traceability:** Displays citations and confidence scores for transparency.
 - **Interactive UI:** Built with Streamlit for an intuitive user experience.
 - **FastAPI backend:** Handles AI processing and query analysis.
-- **Data visualization:** Uses Plotly to display confidence scores and insights.
+- **Data visualization:** Uses CSS
 
 ---
 
