@@ -2,8 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 import os
-from dotenv import load_dotenv
-from datetime import datetime
 
 # Safely import plotly
 try:
@@ -13,11 +11,8 @@ except ImportError:
     PLOTLY_AVAILABLE = False
     st.warning("Visualization library not available. Some features may be limited.")
 
-# Load environment variables
-load_dotenv()
-
 # Get API URL from environment variable or use default
-API_URL = os.getenv("API_URL", "https://bi-coding-challenge.onrender.com")
+API_URL = "https://bi-coding-challenge.onrender.com"
 
 def query_backend(query: str):
     """Send query to FastAPI backend and return response"""
