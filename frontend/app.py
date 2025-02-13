@@ -94,10 +94,10 @@ st.markdown("""
     .source-text {
         font-size: 0.9em;
         padding: 1rem;
-        background-color: #301d28;
+        background-color: #472e3d;
         border-left: 3px solid #0f0406;
         margin: 0.5rem 0;
-        color: #414a57;
+        color: #0a192e;
         border-radius: 0.25rem;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
@@ -118,7 +118,7 @@ st.markdown("""
         color: #414a57;
     }
     .confidence-score {
-        color: #3c5941;
+        color: #384f37;
         font-weight: 600;
     }
     .document-content {
