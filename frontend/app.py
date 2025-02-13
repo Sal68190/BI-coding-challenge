@@ -86,26 +86,52 @@ st.markdown("""
         padding: 0.5rem;
     }
     .user-query {
-        background-color: #f0f2f6;
+        background-color: #122a40;
         padding: 1rem;
         border-radius: 0.5rem;
         margin-bottom: 1rem;
     }
     .source-text {
         font-size: 0.9em;
-        padding: 0.5rem;
-        background-color: #f8f9fa;
-        border-left: 3px solid #6c757d;
+        padding: 1rem;
+        background-color: #301d28;
+        border-left: 3px solid #0f0406;
         margin: 0.5rem 0;
+        color: #414a57;
+        border-radius: 0.25rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
     .metric-card {
-        background-color: #f8f9fa;
+        background-color: #303b30;
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 0.5rem 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .stExpander {
+        background-color: #1f2937;
+        border-radius: 0.5rem;
+        border: 1px solid #E5E7EB;
+    }
+    .stExpander .streamlit-expanderContent {
+        background-color: #363c45;
+        color: #414a57;
+    }
+    .confidence-score {
+        color: #0a0102;
+        font-weight: 600;
+    }
+    .document-content {
+        color: #01080f !important;
+        background-color: #9c8d79;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 0.5rem;
+        border: 1px solid #01080f;
     }
 </style>
 """, unsafe_allow_html=True)
+
 
 # Initialize session state
 if 'chat_history' not in st.session_state:
