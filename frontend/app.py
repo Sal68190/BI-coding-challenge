@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get API URL from environment variable or use default
-API_URL = os.getenv("API_URL", "https://bi-coding-challenge.onrender.com/")  # Replace with your actual deployed backend URL
+API_URL = os.getenv("API_URL", "https://bi-coding-challenge.onrender.com")  # Remove trailing slash
 
 def query_backend(query: str) -> Dict[str, Any]:
     """Send query to FastAPI backend and return response"""
@@ -28,22 +28,22 @@ def query_backend(query: str) -> Dict[str, Any]:
         response.raise_for_status()
         return response.json()
     except requests.exceptions.Timeout:
-        st.error("Request timed out. The server might be starting up (cold start). Please try again.")
+        st.error("Request timed out. The server might be starting up (cold start). Please try again in a few moments.")
         return None
     except requests.exceptions.ConnectionError:
-        st.error(f"Could not connect to the backend at {API_URL}. Please check if the server is running.")
+        st.error(f"Could not connect to the backend. Please check if the server is running.")
         return None
     except requests.exceptions.RequestException as e:
         st.error(f"Error communicating with backend: {str(e)}")
         return None
 
-# Add backend status check
-def check_backend_health():
+def check_backend_health() -> bool:
+    """Check if backend is healthy"""
     try:
         response = requests.get(f"{API_URL}/health", timeout=5)
         return response.status_code == 200
     except:
-   
+        return False
 
 # Configure the page
 st.set_page_config(
@@ -74,26 +74,21 @@ st.markdown("""
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-def query_backend(query: str) -> Dict[str, Any]:
-    """Send query to FastAPI backend and return response"""
-    try:
-        response = requests.post(
-            "http://localhost:8000/api/analyze",
-            json={"text": query, "filters": None}
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error communicating with backend: {str(e)}")
-        return None
-
 # Main layout
 st.title("📊 Market Research Analysis Platform")
 
-
-# Sidebar for filters and settings
+# Sidebar with backend status
 with st.sidebar:
     st.header("Settings")
+    
+    # Backend status indicator
+    backend_status = check_backend_health()
+    if backend_status:
+        st.success("Backend: Connected")
+    else:
+        st.error("Backend: Not Connected")
+        st.info("The backend might be in cold start mode. Please wait a few moments and try again.")
+    
     temperature = st.slider("Analysis Depth", 0.0, 1.0, 0.7)
     st.divider()
     st.header("Filters")
@@ -114,8 +109,10 @@ with col1:
                          placeholder="e.g., What are the key market trends identified in both reports?")
     
     if st.button("Analyze", type="primary"):
-        with st.spinner("Analyzing..."):
-            if query:
+        if not query:
+            st.warning("Please enter a question to analyze.")
+        else:
+            with st.spinner("Analyzing... This might take a moment on cold start."):
                 response = query_backend(query)
                 if response:
                     # Add to chat history
@@ -141,14 +138,17 @@ with col2:
     if st.session_state.chat_history:
         # Example visualization
         st.subheader("Confidence Scores")
-        confidence_data = pd.DataFrame([
-            {"query": item["query"][:30] + "...", 
-             "confidence": item["response"]["confidence"]}
-            for item in st.session_state.chat_history
-        ])
-        fig = px.bar(confidence_data, x="query", y="confidence",
-                    title="Analysis Confidence Scores")
-        st.plotly_chart(fig, use_container_width=True)
+        try:
+            confidence_data = pd.DataFrame([
+                {"query": item["query"][:30] + "...", 
+                 "confidence": item["response"].get("confidence", 0.95)}
+                for item in st.session_state.chat_history
+            ])
+            fig = px.bar(confidence_data, x="query", y="confidence",
+                        title="Analysis Confidence Scores")
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error("Error creating visualization")
 
 # Footer
 st.divider()
@@ -157,4 +157,3 @@ st.markdown("""
     <small>Made by Saloni Deshpande</small>
 </div>
 """, unsafe_allow_html=True)
-
