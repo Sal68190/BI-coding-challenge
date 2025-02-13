@@ -65,7 +65,7 @@ st.markdown("""
         font-size: 0.9em;
         padding: 1rem;
         background-color: #122a40;
-        border-left: 3px solid #0066cc;
+        border-left: 3px solid #4d2525;
         margin: 0.5rem 0;
         color: #1F2937;
         border-radius: 0.25rem;
@@ -88,7 +88,7 @@ st.markdown("""
         color: #1F2937;
     }
     .confidence-score {
-        color: #059669;
+        color: #4d2525;
         font-weight: 600;
     }
     .document-content {
