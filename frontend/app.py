@@ -93,7 +93,7 @@ st.markdown("""
     }
     .document-content {
         color: #01080f !important;
-        background-color: #422a38;
+        background-color: #9c8d79;
         padding: 1rem;
         margin: 0.5rem 0;
         border-radius: 0.5rem;
