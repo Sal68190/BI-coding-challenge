@@ -64,7 +64,7 @@ st.markdown("""
     .source-text {
         font-size: 0.9em;
         padding: 1rem;
-        background-color: #122a40;
+        background-color: #1f2937;
         border-left: 3px solid #4d2525;
         margin: 0.5rem 0;
         color: #1F2937;
@@ -72,7 +72,7 @@ st.markdown("""
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
     .metric-card {
-        background-color: #2b4854;
+        background-color: white;
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 0.5rem 0;
