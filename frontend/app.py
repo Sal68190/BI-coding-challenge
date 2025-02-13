@@ -67,7 +67,7 @@ st.markdown("""
         background-color: #01080f;
         border-left: 3px solid #4d2525;
         margin: 0.5rem 0;
-        color: #1F2937;
+        color: #414a57;
         border-radius: 0.25rem;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
@@ -85,7 +85,7 @@ st.markdown("""
     }
     .stExpander .streamlit-expanderContent {
         background-color: #422a38;
-        color: white;
+        color: #414a57;
     }
     .confidence-score {
         color: #4d2525;
