@@ -79,7 +79,7 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
     .stExpander {
-        background-color: #122a40;
+        background-color: #2b4854;
         border-radius: 0.5rem;
         border: 1px solid #E5E7EB;
     }
