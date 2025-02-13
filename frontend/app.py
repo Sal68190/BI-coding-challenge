@@ -92,12 +92,12 @@ st.markdown("""
         font-weight: 600;
     }
     .document-content {
-        color: #778ca8 !important;
+        color:  #4d2525 !important;
         background-color: #422a38;
         padding: 1rem;
         margin: 0.5rem 0;
         border-radius: 0.5rem;
-        border: 1px solid #E5E7EB;
+        border: 1px solid #01080f;
     }
 </style>
 """, unsafe_allow_html=True)
