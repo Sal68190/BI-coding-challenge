@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from rag import RAGEngine
+from .rag import RAGEngine  # Changed to relative import
 
 app = FastAPI()
 
