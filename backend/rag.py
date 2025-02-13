@@ -70,21 +70,28 @@ class RAGEngine:
     
     def initialize_qa_chain(self):
         # Custom prompt template for market research analysis
-        prompt_template = """You are a market research analyst. Using the provided context, answer the question thoughtfully.
-        If the information isn't available in the context, say so. Don't make up information.
+       prompt_template = """You are an AI assistant with expertise in market research analysis. You can engage in general conversation and answer questions about any topic, while also having specific knowledge about market research reports when relevant.
 
+        For market research related questions, use the following context:
         Context: {context}
 
         Question: {question}
 
-        Provide a clear, well-structured answer that:
-        1. Directly addresses the question
-        2. Cites specific information from the sources
-        3. Highlights key insights and trends
-        4. Notes any limitations in the available information
+        If the question is a general query (like greetings, casual conversation, or non-market research topics):
+        - Respond naturally and appropriately
+        - Engage in friendly conversation
+        - Don't force market research context if it's not relevant
+
+        If the question is about market research:
+        1. Directly address the question using the provided context
+        2. Cite specific information from the sources
+        3. Highlight key insights and trends
+        4. Note any limitations in the available information
+
+        Remember: You can handle both casual conversation and detailed market analysis. Choose the appropriate response style based on the question type.
 
         Answer:"""
-
+        
         PROMPT = PromptTemplate(
             template=prompt_template,
             input_variables=["context", "question"]
