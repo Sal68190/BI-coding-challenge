@@ -118,7 +118,7 @@ st.markdown("""
         color: #414a57;
     }
     .confidence-score {
-        color: #0a0102;
+        color: #3c5941;
         font-weight: 600;
     }
     .document-content {
