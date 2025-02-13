@@ -84,7 +84,7 @@ st.markdown("""
         border: 1px solid #E5E7EB;
     }
     .stExpander .streamlit-expanderContent {
-        background-color: #122a40;
+        background-color: #422a38;
         color: #1F2937;
     }
     .confidence-score {
@@ -93,7 +93,7 @@ st.markdown("""
     }
     .document-content {
         color: #1F2937 !important;
-        background-color: white;
+        background-color: #1F2937;
         padding: 1rem;
         margin: 0.5rem 0;
         border-radius: 0.5rem;
