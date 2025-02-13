@@ -1,7 +1,18 @@
 import streamlit as st
+
+# Configure the page - THIS MUST BE THE FIRST STREAMLIT COMMAND
+st.set_page_config(
+    page_title="Market Research RAG Analysis",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Now import other libraries
 import requests
 import pandas as pd
 import os
+from datetime import datetime
 
 # Safely import plotly
 try:
@@ -45,14 +56,6 @@ def check_backend_health():
         return response.status_code == 200
     except:
         return False
-
-# Configure the page
-st.set_page_config(
-    page_title="Market Research RAG Analysis",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Custom CSS
 st.markdown("""
