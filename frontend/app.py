@@ -101,38 +101,71 @@ def check_backend_health():
     except Exception as e:
         return False, str(e)
 
-# Custom CSS for styling
+# Custom CSS
 st.markdown("""
 <style>
+    .main {
+        padding: 2rem;
+    }
+    .stTextInput > div > div > input {
+        padding: 0.5rem;
+    }
+    .user-query {
+        background-color: #122a40;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .source-text {
+        font-size: 0.9em;
+        padding: 1rem;
+        background-color: #472e3d;
+        border-left: 3px solid #0f0406;
+        margin: 0.5rem 0;
+        color: #0a192e;
+        border-radius: 0.25rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
     .metric-card {
-        background: linear-gradient(135deg, #1E1E1E 0%, #2D2D2D 100%);
-        padding: 1.2rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: transform 0.2s;
-    }
-    .metric-card:hover {
-        transform: translateY(-2px);
-    }
-    .source-card {
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: #303b30;
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 0.5rem 0;
-        border-left: 3px solid #00ff00;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    .chart-container {
-        background-color: rgba(30, 30, 30, 0.6);
+    .stExpander {
+        background-color: #1f2937;
+        border-radius: 0.5rem;
+        border: 1px solid #E5E7EB;
+    }
+    .stExpander .streamlit-expanderContent {
+        background-color: #363c45;
+        color: #414a57;
+    }
+    .confidence-score {
+        color: #384f37;
+        font-weight: 600;
+    }
+    .document-content {
+        color: #01080f !important;
+        background-color: #9c8d79;
         padding: 1rem;
-        border-radius: 10px;
+        margin: 0.5rem 0;
+        border-radius: 0.5rem;
+        border: 1px solid #01080f;
+    }
+    .stats-container {
+        background-color: #122a40;
+        padding: 1rem;
+        border-radius: 0.5rem;
         margin: 1rem 0;
     }
-    .query-card {
-        background: linear-gradient(135deg, #1E1E1E 0%, #2D2D2D 100%);
+    .chart-container {
+        background-color: #1f2937;
         padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        border-left: 4px solid #00ff00;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+        border: 1px solid #363c45;
     }
 </style>
 """, unsafe_allow_html=True)
