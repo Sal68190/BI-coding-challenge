@@ -3,7 +3,7 @@ This web application implements a Retrieval-Augmented Generation (RAG) backend s
 
 ## Watch the Demo
 
-[![Watch the video](https://img.youtube.com/vi/GcZbY1s0Ddw/0.jpg)](https://youtu.be/p0-AAe0ZI6Y)
+[![Watch the video]([https://img.youtube.com/vi/GcZbY1s0Ddw/0.jpg](https://yt3.ggpht.com/m73MkTlCAUVD_gzDN7McKb7aC2xim8UxW-FkWxV54IKBU7byljklMGAQrj7SZtPOMuFCb7m6YB-wlw=s1546-c-fcrop64=1,3b4a0000c4b5ffff-rw-nd-v1))](https://youtu.be/p0-AAe0ZI6Y)
 
 ---
 
