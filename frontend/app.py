@@ -122,7 +122,7 @@ st.markdown("""
         background-color: #301d28;
         border-left: 3px solid #0f0406;
         margin: 0.5rem 0;
-        color: #414a57;
+        color: #b5a288;
         border-radius: 0.25rem;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
