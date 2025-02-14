@@ -70,7 +70,7 @@ class RAGEngine:
     
     def initialize_qa_chain(self):
         # Custom prompt template for market research analysis
-       prompt_template = """You are an AI assistant with expertise in market research analysis. You can engage in general conversation and answer questions about any topic, while also having specific knowledge about market research reports when relevant.
+        prompt_template = """You are an AI assistant with expertise in market research analysis. You can engage in general conversation and answer questions about any topic, while also having specific knowledge about market research reports when relevant.
 
         For market research related questions, use the following context:
         Context: {context}
