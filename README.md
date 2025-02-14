@@ -3,9 +3,9 @@ This web application implements a Retrieval-Augmented Generation (RAG) backend s
 
 ---
 
-## Key Features
+# Key Features
 
-# Core Capabilities
+## Core Capabilities
 
 - Document analysis using RAG and LangChain
 - Semantic search with FAISS vector store
@@ -13,7 +13,7 @@ This web application implements a Retrieval-Augmented Generation (RAG) backend s
 - Interactive data visualizations
 - Cold start prevention system
 
-# Technical Features
+## Technical Features
 
 - Responsive UI with Streamlit
 - FastAPI backend with async support
@@ -32,23 +32,23 @@ This web application implements a Retrieval-Augmented Generation (RAG) backend s
 
 ---
 
-## Development
+# Development
 
-# Backend Development
+## Backend Development
 The backend is built with FastAPI and includes:
 - Async request handling
 - RAG implementation with LangChain
 - FAISS vector store for document retrieval
 - Automatic cold start prevention
 
-# Frontend Development
+## Frontend Development
 The frontend uses Streamlit and features:
 - Interactive visualizations with Plotly
 - Real-time analytics dashboard
 - Responsive design
 - Session state management
 
-# Performance Optimization
+## Performance Optimization
 The platform includes several performance optimizations:
 - Cold start prevention using keepalive system
 - Efficient vector store management
@@ -56,7 +56,7 @@ The platform includes several performance optimizations:
 - Optimized state management
 - Lazy loading of components
 
-#Error Handling
+## Error Handling
 The application implements comprehensive error handling:
 - Backend validation with Pydantic
 - Frontend error feedback
@@ -65,7 +65,7 @@ The application implements comprehensive error handling:
 
 ---
 
-## Installation
+# Installation
 
 To set up and run the RAG Chatbot, follow these steps:
 
