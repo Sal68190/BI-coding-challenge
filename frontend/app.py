@@ -122,7 +122,7 @@ st.markdown("""
         font-weight: 600;
     }
     .document-content {
-        color: #d4c3a7 !important;
+        color: #d4c3a7;
         background-color: #9c8d79;
         padding: 1rem;
         margin: 0.5rem 0;
@@ -244,12 +244,7 @@ with col1:
                     st.divider()
 
 # Enhanced Insights Dashboard (col2)
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-# Set seaborn style
-sns.set_style("darkgrid")
-plt.style.use("dark_background")
+import altair as alt
 
 with col2:
     st.header("📊 Analytics")
@@ -317,26 +312,27 @@ with col2:
                 )
 
         with tab2:
-            # Enhanced trend visualization using seaborn
+            # Enhanced trend visualization using Altair
             st.subheader("Confidence Trends")
             
             # Create trend data
             trend_data = pd.DataFrame([
                 {
-                    "Query": f"Q{i+1}",
+                    "Query Number": i + 1,
                     "Confidence": item["response"].get("confidence", 0.95),
                     "Topic": item["query"][:30] + "..." if len(item["query"]) > 30 else item["query"]
                 }
                 for i, item in enumerate(st.session_state.chat_history)
             ])
             
-            # Create confidence trend plot
-            fig, ax = plt.subplots(figsize=(10, 4))
-            sns.lineplot(data=trend_data, x="Query", y="Confidence", marker='o')
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close()
+            # Create confidence trend chart
+            line_chart = alt.Chart(trend_data).mark_line(point=True).encode(
+                x=alt.X('Query Number:Q', title='Query'),
+                y=alt.Y('Confidence:Q', scale=alt.Scale(domain=[0, 1])),
+                tooltip=['Query Number:Q', 'Confidence:Q', 'Topic:N']
+            ).properties(height=300)
+            
+            st.altair_chart(line_chart, use_container_width=True)
 
             # Source distribution analysis
             st.subheader("Source Distribution")
@@ -351,23 +347,14 @@ with col2:
                 for doc, count in source_counts.items()
             ]).sort_values("Citations", ascending=True)
             
-            # Create horizontal bar plot
-            fig, ax = plt.subplots(figsize=(10, max(4, len(source_counts) * 0.5)))
-            sns.barplot(data=source_data, x="Citations", y="Document", palette="viridis")
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close()
-
-            # Additional trend analysis
-            if len(st.session_state.chat_history) > 1:
-                st.subheader("Confidence Distribution")
-                fig, ax = plt.subplots(figsize=(10, 4))
-                sns.histplot(confidence_values, bins=min(10, len(confidence_values)), kde=True)
-                plt.xlabel("Confidence Score")
-                plt.ylabel("Frequency")
-                plt.tight_layout()
-                st.pyplot(fig)
-                plt.close()
+            # Create bar chart
+            bar_chart = alt.Chart(source_data).mark_bar().encode(
+                x='Citations:Q',
+                y=alt.Y('Document:N', sort='-x'),
+                tooltip=['Document:N', 'Citations:Q']
+            ).properties(height=max(100, len(source_counts) * 30))
+            
+            st.altair_chart(bar_chart, use_container_width=True)
 
         with tab3:
             st.subheader("Recent Queries")
@@ -386,7 +373,6 @@ with col2:
                         """,
                         unsafe_allow_html=True
                     )
-
     else:
         # Enhanced empty state
         st.markdown(
