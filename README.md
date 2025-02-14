@@ -1,6 +1,10 @@
 # BI-coding-challenge
 This web application implements a Retrieval-Augmented Generation (RAG) backend system to analyze and compare two provided market research reports. 
 
+## Watch the Demo
+
+[![Watch the video](https://img.youtube.com/vi/GcZbY1s0Ddw/0.jpg)](https://youtu.be/p0-AAe0ZI6Y)
+
 ---
 
 # Key Features
