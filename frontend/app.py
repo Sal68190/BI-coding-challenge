@@ -244,142 +244,168 @@ with col1:
                     st.divider()
 
 # Enhanced Insights Dashboard (col2)
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Set seaborn style
+sns.set_style("darkgrid")
+plt.style.use("dark_background")
+
 with col2:
-    st.header("Insights Dashboard")
+    st.header("📊 Analytics")
     if st.session_state.chat_history:
-        # Summary Statistics
-        with st.container():
-            st.markdown('<div class="stats-container">', unsafe_allow_html=True)
-            st.subheader("Summary Stats")
-            metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
+        # Create tabs for different analytics views
+        tab1, tab2, tab3 = st.tabs(["📈 Overview", "📊 Trends", "📝 Recent"])
+        
+        with tab1:
+            # Overview metrics in a modern grid
+            total_queries = len(st.session_state.chat_history)
+            confidence_values = [item["response"].get("confidence", 0.95) 
+                               for item in st.session_state.chat_history]
+            avg_confidence = sum(confidence_values) / len(confidence_values)
             
-            with metrics_col1:
-                st.metric(
-                    "Total Queries",
-                    len(st.session_state.chat_history)
+            unique_docs = set()
+            for item in st.session_state.chat_history:
+                for source in item["response"]["sources"]:
+                    unique_docs.add(source["document"])
+
+            # Modern metric cards with icons
+            st.markdown("""
+            <style>
+            .metric-card {
+                background-color: #1E1E1E;
+                padding: 1rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                margin-bottom: 1rem;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
+            cols = st.columns(3)
+            with cols[0]:
+                st.markdown(
+                    f"""
+                    <div class="metric-card">
+                        <h3>🔍 Queries</h3>
+                        <h2>{total_queries}</h2>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
                 )
             
-            with metrics_col2:
-                # Calculate average confidence
-                confidence_values = [
-                    item["response"].get("confidence", 0.95)
-                    for item in st.session_state.chat_history
-                ]
-                avg_confidence = sum(confidence_values) / len(confidence_values)
-                st.metric(
-                    "Avg Confidence",
-                    f"{avg_confidence:.1%}"
+            with cols[1]:
+                st.markdown(
+                    f"""
+                    <div class="metric-card">
+                        <h3>📊 Avg Confidence</h3>
+                        <h2>{avg_confidence:.1%}</h2>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
                 )
             
-            with metrics_col3:
-                # Calculate unique documents referenced
-                unique_docs = set()
-                for item in st.session_state.chat_history:
-                    for source in item["response"]["sources"]:
-                        unique_docs.add(source["document"])
-                st.metric(
-                    "Docs Referenced",
-                    len(unique_docs)
+            with cols[2]:
+                st.markdown(
+                    f"""
+                    <div class="metric-card">
+                        <h3>📚 Documents</h3>
+                        <h2>{len(unique_docs)}</h2>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
                 )
-            st.markdown('</div>', unsafe_allow_html=True)
 
-        # Enhanced Visualizations
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        st.subheader("Analysis Trends")
-        
-        # Create trend data
-        trend_data = pd.DataFrame([
-            {
-                "Query Number": i + 1,
-                "Timestamp": item.get("timestamp", "N/A"),
-                "Confidence": item["response"].get("confidence", 0.95),
-                "Query": item["query"][:30] + "..." if len(item["query"]) > 30 else item["query"]
-            }
-            for i, item in enumerate(st.session_state.chat_history)
-        ])
-        
-        # Confidence trend chart
-        st.line_chart(
-            trend_data,
-            x="Query Number",
-            y="Confidence",
-            use_container_width=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
+        with tab2:
+            # Enhanced trend visualization using seaborn
+            st.subheader("Confidence Trends")
+            
+            # Create trend data
+            trend_data = pd.DataFrame([
+                {
+                    "Query": f"Q{i+1}",
+                    "Confidence": item["response"].get("confidence", 0.95),
+                    "Topic": item["query"][:30] + "..." if len(item["query"]) > 30 else item["query"]
+                }
+                for i, item in enumerate(st.session_state.chat_history)
+            ])
+            
+            # Create confidence trend plot
+            fig, ax = plt.subplots(figsize=(10, 4))
+            sns.lineplot(data=trend_data, x="Query", y="Confidence", marker='o')
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
 
-        # Source Analysis
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        st.subheader("Source Distribution")
-        
-        # Calculate source statistics
-        source_counts = {}
-        for item in st.session_state.chat_history:
-            for source in item["response"]["sources"]:
-                doc = source["document"]
-                source_counts[doc] = source_counts.get(doc, 0) + 1
-        
-        # Create source distribution dataframe
-        source_data = pd.DataFrame([
-            {"Document": doc, "Citations": count}
-            for doc, count in source_counts.items()
-        ]).sort_values("Citations", ascending=True)
-        
-        # Plot source distribution
-        st.bar_chart(
-            source_data.set_index("Document"),
-            use_container_width=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
+            # Source distribution analysis
+            st.subheader("Source Distribution")
+            source_counts = {}
+            for item in st.session_state.chat_history:
+                for source in item["response"]["sources"]:
+                    doc = source["document"]
+                    source_counts[doc] = source_counts.get(doc, 0) + 1
+            
+            source_data = pd.DataFrame([
+                {"Document": doc, "Citations": count}
+                for doc, count in source_counts.items()
+            ]).sort_values("Citations", ascending=True)
+            
+            # Create horizontal bar plot
+            fig, ax = plt.subplots(figsize=(10, max(4, len(source_counts) * 0.5)))
+            sns.barplot(data=source_data, x="Citations", y="Document", palette="viridis")
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
 
-        # Recent Queries Table
-        st.markdown('<div class="stats-container">', unsafe_allow_html=True)
-        st.subheader("Recent Queries")
-        
-        details_df = pd.DataFrame([
-            {
-                "Time": item.get("timestamp", "N/A"),
-                "Query": item["query"][:40] + "..." if len(item["query"]) > 40 else item["query"],
-                "Confidence": f"{item['response'].get('confidence', 0.95):.1%}",
-                "Sources": len(item["response"]["sources"])
-            }
-            for item in reversed(st.session_state.chat_history[-5:])
-        ])
-        
-        st.dataframe(
-            details_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Time": st.column_config.TextColumn(
-                    "Time",
-                    width="small",
-                ),
-                "Query": st.column_config.TextColumn(
-                    "Query",
-                    width="medium",
-                ),
-                "Confidence": st.column_config.TextColumn(
-                    "Confidence",
-                    width="small",
-                ),
-                "Sources": st.column_config.NumberColumn(
-                    "Sources Used",
-                    width="small",
-                )
-            }
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
+            # Additional trend analysis
+            if len(st.session_state.chat_history) > 1:
+                st.subheader("Confidence Distribution")
+                fig, ax = plt.subplots(figsize=(10, 4))
+                sns.histplot(confidence_values, bins=min(10, len(confidence_values)), kde=True)
+                plt.xlabel("Confidence Score")
+                plt.ylabel("Frequency")
+                plt.tight_layout()
+                st.pyplot(fig)
+                plt.close()
+
+        with tab3:
+            st.subheader("Recent Queries")
+            for item in list(reversed(st.session_state.chat_history))[:5]:
+                with st.container():
+                    st.markdown(
+                        f"""
+                        <div style='padding: 1rem; background-color: #1E1E1E; border-radius: 8px; margin-bottom: 1rem;'>
+                            <small style='color: #888;'>{item.get("timestamp", "N/A")}</small>
+                            <p style='margin: 0.5rem 0;'>{item["query"]}</p>
+                            <div style='display: flex; gap: 1rem;'>
+                                <small style='color: #888;'>Confidence: {item["response"].get("confidence", 0.95):.1%}</small>
+                                <small style='color: #888;'>Sources: {len(item["response"]["sources"])}</small>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
     else:
-        # Empty state
-        st.info("Ask some questions to see insights and analytics!")
+        # Enhanced empty state
+        st.markdown(
+            """
+            <div style='text-align: center; padding: 2rem;'>
+                <h3>🔍 Start Analyzing</h3>
+                <p>Ask questions to see insights and analytics!</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         
-        st.markdown("#### Example Questions:")
-        st.markdown("""
-        - What are the main market trends discussed in the reports?
-        - What are the key challenges mentioned?
-        - Which companies are the major players?
-        - What growth projections are mentioned?
-        """)
+        with st.expander("📝 Example Questions"):
+            st.markdown("""
+            - What are the main market trends discussed in the reports?
+            - What are the key challenges mentioned?
+            - Which companies are the major players?
+            - What growth projections are mentioned?
+            """)
 
 # Footer
 st.divider()
