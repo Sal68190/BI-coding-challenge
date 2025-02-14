@@ -147,7 +147,7 @@ st.markdown("""
         font-weight: 600;
     }
     .document-content {
-        color: #01080f !important;
+        color: #b5a288 !important;
         background-color: #9c8d79;
         padding: 1rem;
         margin: 0.5rem 0;
