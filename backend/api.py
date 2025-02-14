@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from .rag import RAGEngine
-from .keepalive import KeepAliveSystem
+from .utils.keepalive import KeepAliveSystem
 from textblob import TextBlob
 import gensim
 from gensim import corpora
