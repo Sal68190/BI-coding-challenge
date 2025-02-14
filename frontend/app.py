@@ -243,156 +243,226 @@ with col1:
                     st.caption(f"Document: {source['document']} | Confidence: {source['confidence']:.2%}")
                     st.divider()
 
-# Enhanced Insights Dashboard (col2)
-import altair as alt
+import numpy as np
+from datetime import datetime, timedelta
 
 with col2:
-    st.header("📊 Analytics")
+    st.header("📊 Analytics Hub")
+    
     if st.session_state.chat_history:
-        # Create tabs for different analytics views
-        tab1, tab2, tab3 = st.tabs(["📈 Overview", "📊 Trends", "📝 Recent"])
+        # Calculate key metrics
+        total_queries = len(st.session_state.chat_history)
+        confidence_values = [item["response"].get("confidence", 0.95) 
+                           for item in st.session_state.chat_history]
+        avg_confidence = sum(confidence_values) / len(confidence_values)
+        
+        # Get unique documents and their frequencies
+        document_frequencies = {}
+        for item in st.session_state.chat_history:
+            for source in item["response"]["sources"]:
+                doc = source["document"]
+                document_frequencies[doc] = document_frequencies.get(doc, 0) + 1
+
+        # Custom CSS for better styling
+        st.markdown("""
+        <style>
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #1E1E1E 0%, #2D2D2D 100%);
+            padding: 1.2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            flex: 1;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+        .metric-title {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        .metric-trend {
+            font-size: 0.8rem;
+            color: #00ff00;
+        }
+        .trend-up { color: #00ff00; }
+        .trend-down { color: #ff4444; }
+        .section-container {
+            background: rgba(30, 30, 30, 0.6);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # Create tabs for different views
+        tab1, tab2, tab3 = st.tabs(["📈 Performance", "🎯 Insights", "📋 History"])
         
         with tab1:
-            # Overview metrics in a modern grid
-            total_queries = len(st.session_state.chat_history)
-            confidence_values = [item["response"].get("confidence", 0.95) 
-                               for item in st.session_state.chat_history]
-            avg_confidence = sum(confidence_values) / len(confidence_values)
+            # Performance Overview Section
+            metrics_html = ""
+            for metric, value, icon, subtitle in [
+                ("Total Queries", total_queries, "🔍", f"+{len(st.session_state.chat_history[-5:])}" if len(st.session_state.chat_history) > 5 else "New"),
+                ("Avg Confidence", f"{avg_confidence:.1%}", "📊", "Last 24h"),
+                ("Documents Used", len(document_frequencies), "📚", f"{sum(document_frequencies.values())} citations")
+            ]:
+                metrics_html += f"""
+                <div class="metric-card">
+                    <div class="metric-title">{icon} {metric}</div>
+                    <div class="metric-value">{value}</div>
+                    <div class="metric-trend">{subtitle}</div>
+                </div>
+                """
             
-            unique_docs = set()
-            for item in st.session_state.chat_history:
-                for source in item["response"]["sources"]:
-                    unique_docs.add(source["document"])
-
-            # Modern metric cards with icons
-            st.markdown("""
-            <style>
-            .metric-card {
-                background-color: #1E1E1E;
-                padding: 1rem;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                margin-bottom: 1rem;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-
-            cols = st.columns(3)
-            with cols[0]:
-                st.markdown(
-                    f"""
-                    <div class="metric-card">
-                        <h3>🔍 Queries</h3>
-                        <h2>{total_queries}</h2>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
+            st.markdown(f'<div class="metric-row">{metrics_html}</div>', unsafe_allow_html=True)
             
-            with cols[1]:
-                st.markdown(
-                    f"""
-                    <div class="metric-card">
-                        <h3>📊 Avg Confidence</h3>
-                        <h2>{avg_confidence:.1%}</h2>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
-            
-            with cols[2]:
-                st.markdown(
-                    f"""
-                    <div class="metric-card">
-                        <h3>📚 Documents</h3>
-                        <h2>{len(unique_docs)}</h2>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
-
-        with tab2:
-            # Enhanced trend visualization using Altair
+            # Confidence Trend Analysis
+            st.markdown('<div class="section-container">', unsafe_allow_html=True)
             st.subheader("Confidence Trends")
             
-            # Create trend data
             trend_data = pd.DataFrame([
                 {
                     "Query Number": i + 1,
                     "Confidence": item["response"].get("confidence", 0.95),
-                    "Topic": item["query"][:30] + "..." if len(item["query"]) > 30 else item["query"]
+                    "Topic": item["query"][:30] + "..." if len(item["query"]) > 30 else item["query"],
+                    "Timestamp": item.get("timestamp", "N/A")
                 }
                 for i, item in enumerate(st.session_state.chat_history)
             ])
             
-            # Create confidence trend chart
-            line_chart = alt.Chart(trend_data).mark_line(point=True).encode(
-                x=alt.X('Query Number:Q', title='Query'),
-                y=alt.Y('Confidence:Q', scale=alt.Scale(domain=[0, 1])),
-                tooltip=['Query Number:Q', 'Confidence:Q', 'Topic:N']
-            ).properties(height=300)
+            line_chart = alt.Chart(trend_data).mark_area(
+                line={'color': '#00ff00'},
+                color=alt.Gradient(
+                    gradient='linear',
+                    stops=[
+                        alt.GradientStop(color='#00ff00', offset=0),
+                        alt.GradientStop(color='transparent', offset=1)
+                    ],
+                    x1=1,
+                    x2=1,
+                    y1=1,
+                    y2=0
+                )
+            ).encode(
+                x=alt.X('Query Number:Q', title='Query Sequence'),
+                y=alt.Y('Confidence:Q', scale=alt.Scale(domain=[0.5, 1])),
+                tooltip=['Query Number:Q', 'Confidence:Q', 'Topic:N', 'Timestamp:N']
+            ).properties(height=250)
             
             st.altair_chart(line_chart, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-            # Source distribution analysis
-            st.subheader("Source Distribution")
-            source_counts = {}
-            for item in st.session_state.chat_history:
-                for source in item["response"]["sources"]:
-                    doc = source["document"]
-                    source_counts[doc] = source_counts.get(doc, 0) + 1
+        with tab2:
+            # Document Usage Analysis
+            st.markdown('<div class="section-container">', unsafe_allow_html=True)
+            st.subheader("Document Insights")
             
             source_data = pd.DataFrame([
                 {"Document": doc, "Citations": count}
-                for doc, count in source_counts.items()
+                for doc, count in document_frequencies.items()
             ]).sort_values("Citations", ascending=True)
             
-            # Create bar chart
-            bar_chart = alt.Chart(source_data).mark_bar().encode(
+            bar_chart = alt.Chart(source_data).mark_bar(
+                cornerRadius=5
+            ).encode(
                 x='Citations:Q',
                 y=alt.Y('Document:N', sort='-x'),
+                color=alt.Color('Citations:Q', scale=alt.Scale(scheme='viridis')),
                 tooltip=['Document:N', 'Citations:Q']
-            ).properties(height=max(100, len(source_counts) * 30))
+            ).properties(height=max(100, len(document_frequencies) * 30))
             
             st.altair_chart(bar_chart, use_container_width=True)
+            
+            # Add insights summary
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Most Cited Document", 
+                         source_data.iloc[-1]["Document"],
+                         f"{source_data.iloc[-1]['Citations']} citations")
+            with col2:
+                st.metric("Average Citations per Doc", 
+                         f"{sum(document_frequencies.values()) / len(document_frequencies):.1f}",
+                         f"{len(document_frequencies)} unique docs")
+            st.markdown('</div>', unsafe_allow_html=True)
 
         with tab3:
+            # Recent Activity
+            st.markdown('<div class="section-container">', unsafe_allow_html=True)
             st.subheader("Recent Queries")
+            
             for item in list(reversed(st.session_state.chat_history))[:5]:
                 with st.container():
                     st.markdown(
                         f"""
-                        <div style='padding: 1rem; background-color: #1E1E1E; border-radius: 8px; margin-bottom: 1rem;'>
-                            <small style='color: #888;'>{item.get("timestamp", "N/A")}</small>
-                            <p style='margin: 0.5rem 0;'>{item["query"]}</p>
-                            <div style='display: flex; gap: 1rem;'>
-                                <small style='color: #888;'>Confidence: {item["response"].get("confidence", 0.95):.1%}</small>
-                                <small style='color: #888;'>Sources: {len(item["response"]["sources"])}</small>
+                        <div style='
+                            background: linear-gradient(135deg, #1E1E1E 0%, #2D2D2D 100%);
+                            padding: 1rem;
+                            border-radius: 8px;
+                            margin-bottom: 1rem;
+                            border-left: 4px solid #00ff00;
+                        '>
+                            <div style='display: flex; justify-content: space-between; margin-bottom: 0.5rem;'>
+                                <span style='color: #888;'>{item.get("timestamp", "N/A")}</span>
+                                <span style='color: #00ff00;'>{item["response"].get("confidence", 0.95):.1%} confidence</span>
+                            </div>
+                            <p style='margin: 0.5rem 0; font-size: 1.1rem;'>{item["query"]}</p>
+                            <div style='
+                                display: flex;
+                                gap: 1rem;
+                                margin-top: 0.5rem;
+                                font-size: 0.9rem;
+                                color: #888;
+                            '>
+                                <span>📚 {len(item["response"]["sources"])} sources</span>
+                                <span>🔍 {len(item["query"].split())} words</span>
                             </div>
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
+            st.markdown('</div>', unsafe_allow_html=True)
     else:
         # Enhanced empty state
         st.markdown(
             """
-            <div style='text-align: center; padding: 2rem;'>
-                <h3>🔍 Start Analyzing</h3>
-                <p>Ask questions to see insights and analytics!</p>
+            <div style='
+                text-align: center;
+                padding: 3rem 2rem;
+                background: linear-gradient(135deg, #1E1E1E 0%, #2D2D2D 100%);
+                border-radius: 10px;
+                margin-top: 2rem;
+            '>
+                <h2 style='margin-bottom: 1rem;'>🔍 Start Your Analysis</h2>
+                <p style='color: #888; margin-bottom: 2rem;'>
+                    Ask questions to see real-time analytics and insights!
+                </p>
+                <div style='
+                    display: inline-block;
+                    padding: 1rem;
+                    background: rgba(0,255,0,0.1);
+                    border-radius: 8px;
+                    border: 1px solid #00ff00;
+                '>
+                    Try asking about market trends, challenges, or key players
+                </div>
             </div>
             """,
             unsafe_allow_html=True
-        )
-        
-        with st.expander("📝 Example Questions"):
-            st.markdown("""
-            - What are the main market trends discussed in the reports?
-            - What are the key challenges mentioned?
-            - Which companies are the major players?
-            - What growth projections are mentioned?
-            """)
-
+        )         
+       
 # Footer
 st.divider()
 st.markdown("""
