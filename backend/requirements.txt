@@ -10,7 +10,7 @@ langchain==0.1.0
 langchain-community==0.0.10
 langchain-openai==0.0.3
 openai==1.2.3
-tiktoken==0.5.1
+tiktoken>=0.5.2,<0.6.0  # Updated to match langchain-openai requirements
 
 # Vector stores and embeddings
 chromadb==0.4.18
@@ -26,7 +26,7 @@ numpy==1.26.3
 plotly==5.18.0
 plotly-express==0.4.1
 altair==4.0.0
-wordcloud==1.9.4  # Updated to latest available version
+wordcloud==1.9.4
 
 # NLP and Text Analysis
 textblob==0.17.1
