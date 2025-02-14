@@ -1,385 +1,329 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 from typing import Dict, Any
 from datetime import datetime
 import os
+import altair as alt
+from wordcloud import WordCloud
+import numpy as np
 
-# Configure the page 
+# Configure the page with responsive layout
 st.set_page_config(
     page_title="Market Research RAG Analysis",
     page_icon="📊",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # Get API URL from environment variable or use default
 API_URL = os.getenv('API_URL', "https://bi-coding-challenge.onrender.com").rstrip('/')
 
-def query_backend(query: str) -> Dict[str, Any]:
-    """Send query to FastAPI backend and return response"""
-    try:
-        response = requests.post(
-            f"{API_URL}/api/analyze",
-            json={"text": query, "filters": None},
-            timeout=30,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.Timeout:
-        st.error("Request timed out. The server might be starting up (cold start). Please try again.")
-        return None
-    except requests.exceptions.ConnectionError:
-        st.error(f"Could not connect to the backend at {API_URL}")
-        return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error communicating with backend: {str(e)}")
-        return None
-
-def check_backend_health():
-    """Check if backend is healthy with detailed debugging"""
-    try:
-        health_url = f"{API_URL}/api/health"
-        st.sidebar.caption(f"Checking health at: {health_url}")
-        
-        response = requests.get(
-            health_url,
-            timeout=5,
-            headers={
-                "Accept": "application/json"
-            }
-        )
-        
-        # Debug response details in an expander
-        with st.sidebar.expander("Debug Details", expanded=False):
-            st.write(f"Status Code: {response.status_code}")
-            try:
-                st.write("Response:", response.json())
-            except:
-                st.write("Raw Response:", response.text)
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                return data.get("status") == "healthy"
-            except:
-                st.sidebar.warning("Backend response wasn't valid JSON")
-                return False
-                
-        return False
-        
-    except requests.exceptions.RequestException as e:
-        with st.sidebar.expander("Connection Error Details", expanded=True):
-            st.error(f"Error: {str(e)}")
-        return False
-
-# Custom CSS
+# Enhanced CSS with responsive design
 st.markdown("""
 <style>
-    .main {
-        padding: 2rem;
+    /* Responsive container classes */
+    .main-container {
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 0.5rem;
+        background-color: rgba(17, 25, 40, 0.75);
+        backdrop-filter: blur(16px) saturate(180%);
     }
+    
+    .grid-container {
+        display: grid;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    /* Responsive typography */
+    @media (max-width: 768px) {
+        .main-title {
+            font-size: 1.5rem !important;
+        }
+        .sub-title {
+            font-size: 1.2rem !important;
+        }
+    }
+    
+    /* Enhanced component styling */
     .stTextInput > div > div > input {
-        padding: 0.5rem;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
     }
-    .user-query {
-        background-color: #122a40;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-    }
-    .source-text {
-        font-size: 0.9em;
-        padding: 1rem;
-        background-color: #472e3d;
-        border-left: 3px solid #0f0406;
-        margin: 0.5rem 0;
-        color: #030b17;
-        border-radius: 0.25rem;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-    .metric-card {
-        background-color: #303b30;
+    
+    .source-card {
+        background-color: rgba(255, 255, 255, 0.05);
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 0.5rem 0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    .stExpander {
-        background-color: #1f2937;
-        border-radius: 0.5rem;
-        border: 1px solid #E5E7EB;
+    
+    /* Animation classes */
+    .fade-in {
+        animation: fadeIn 0.5s ease-in;
     }
-    .stExpander .streamlit-expanderContent {
-        background-color: #363c45;
-        color: #414a57;
-    }
-    .confidence-score {
-        color: #384f37;
-        font-weight: 600;
-    }
-    .document-content {
-        color: #01080f !important;
-        background-color: #9c8d79;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 0.5rem;
-        border: 1px solid #01080f;
-    }
-    .stats-container {
-        background-color: #122a40;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 1rem 0;
-    }
-    .chart-container {
-        background-color: #1f2937;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 1rem 0;
-        border: 1px solid #363c45;
+    
+    @keyframes fadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
+def create_topic_visualization(topics_data):
+    """Create an interactive topic visualization using Plotly"""
+    if not topics_data:
+        return None
+        
+    fig = go.Figure()
+    
+    for topic in topics_data:
+        fig.add_trace(go.Bar(
+            name=topic['name'],
+            x=[kw for kw in topic['keywords']],
+            y=[topic['weight']] * len(topic['keywords']),
+            text=[f"{topic['weight']:.2f}"] * len(topic['keywords']),
+            textposition='auto',
+        ))
+    
+    fig.update_layout(
+        title="Topic Distribution",
+        barmode='group',
+        template="plotly_dark",
+        height=400
+    )
+    
+    return fig
+
+def create_sentiment_gauge(sentiment_score):
+    """Create a gauge chart for sentiment visualization"""
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=sentiment_score,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        gauge={
+            'axis': {'range': [-1, 1]},
+            'bar': {'color': "rgba(255, 255, 255, 0.8)"},
+            'steps': [
+                {'range': [-1, -0.3], 'color': "rgba(255, 0, 0, 0.3)"},
+                {'range': [-0.3, 0.3], 'color': "rgba(255, 255, 0, 0.3)"},
+                {'range': [0.3, 1], 'color': "rgba(0, 255, 0, 0.3)"}
+            ]
+        }
+    ))
+    
+    fig.update_layout(
+        title="Sentiment Analysis",
+        template="plotly_dark",
+        height=300
+    )
+    
+    return fig
+
+def create_wordcloud(text):
+    """Generate a word cloud from text"""
+    wordcloud = WordCloud(
+        width=800,
+        height=400,
+        background_color='black',
+        colormap='viridis'
+    ).generate(text)
+    
+    return wordcloud.to_array()
+
+def query_backend(query: str) -> Dict[str, Any]:
+    """Enhanced backend query function with better error handling"""
+    try:
+        with st.spinner("🤔 Analyzing your query..."):
+            response = requests.post(
+                f"{API_URL}/api/analyze",
+                json={"text": query, "filters": None},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "topics" not in data:
+                    data["topics"] = []  # Ensure topics field exists
+                return data
+            else:
+                st.error(f"Error: {response.status_code} - {response.text}")
+                return None
+                
+    except requests.exceptions.Timeout:
+        st.error("⏳ Request timed out. The server might be starting up (cold start). Please try again.")
+        return None
+    except Exception as e:
+        st.error(f"❌ Error: {str(e)}")
+        return None
+
+# Initialize session state for advanced features
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
+if 'topic_history' not in st.session_state:
+    st.session_state.topic_history = []
+if 'sentiment_history' not in st.session_state:
+    st.session_state.sentiment_history = []
 
-# Header
-st.title("📊 Market Research Analysis Platform")
+# Main layout
+st.title("📊 Advanced Market Research Analysis")
 
-# Sidebar content (unchanged)
+# Sidebar with enhanced controls
 with st.sidebar:
-    st.header("Settings")
+    st.header("Analysis Controls")
     
-    # Backend status indicator with detailed information
-    st.subheader("Backend Status")
-    backend_status = check_backend_health()
-    
-    if backend_status:
-        st.success("Backend: Connected")
-    else:
-        st.error("Backend: Not Connected")
-        st.warning("""
-        Troubleshooting steps:
-        1. Backend might be in cold start mode (wait 1-2 minutes)
-        2. Check if the URL is correct
-        3. Verify the backend is deployed
-        4. Check for any network issues
-        """)
-    
-    temperature = st.slider("Analysis Depth", 0.0, 1.0, 0.7)
-    st.divider()
+    # Advanced settings
+    with st.expander("🛠️ Advanced Settings", expanded=False):
+        max_sources = st.slider("Maximum Sources", 1, 10, 5)
+        min_confidence = st.slider("Minimum Confidence", 0.0, 1.0, 0.7)
+        enable_topics = st.toggle("Enable Topic Analysis", True)
+        enable_sentiment = st.toggle("Enable Sentiment Analysis", True)
     
     # Filters
-    st.header("Filters")
-    date_range = st.date_input("Date Range", [])
+    with st.expander("🎯 Filters", expanded=False):
+        date_range = st.date_input("Date Range", [])
+        categories = st.multiselect(
+            "Categories",
+            ["Market Trends", "Competition", "Technology", "Regulations"],
+            []
+        )
     
-    # Clear history button
-    if st.button("Clear History", type="secondary"):
+    # Session Management
+    if st.button("🗑️ Clear History"):
         st.session_state.chat_history = []
-        st.success("Chat history cleared!")
-    
-    st.divider()
-    st.markdown("### About")
-    st.markdown("""
-    This platform uses RAG (Retrieval Augmented Generation) to analyze market research reports.
-    Ask questions about the reports and get AI-powered insights with source citations.
-    
-    Features:
-    - 🤖 AI-powered analysis
-    - 📊 Visual insights
-    - 📝 Source citations
-    - 🔍 Semantic search
-    """)
+        st.session_state.topic_history = []
+        st.session_state.sentiment_history = []
+        st.success("History cleared!")
 
-# Main content
+# Main content area with responsive layout
 col1, col2 = st.columns([2, 1])
 
-# Analysis Interface (col1 content unchanged)
 with col1:
-    st.header("Analysis Interface")
+    # Query input with enhanced UI
+    st.markdown('<div class="main-container fade-in">', unsafe_allow_html=True)
     query = st.text_input(
-        "Ask a question about the market research reports:", 
-        placeholder="e.g., What are the key market trends identified in both reports?",
+        "🔍 Ask your question:",
+        placeholder="e.g., What are the emerging trends in the market?",
         key="query_input"
     )
     
-    if st.button("Analyze", type="primary", disabled=not backend_status):
-        if not query:
-            st.warning("Please enter a question to analyze.")
-        else:
-            with st.spinner("Analyzing... This might take a moment on cold start."):
-                response = query_backend(query)
-                if response:
-                    # Add to chat history with timestamp
-                    st.session_state.chat_history.append({
-                        "query": query,
-                        "response": response,
-                        "timestamp": datetime.now().strftime("%H:%M:%S")
+    if st.button("🚀 Analyze", type="primary"):
+        if query:
+            response = query_backend(query)
+            if response:
+                # Update session state
+                st.session_state.chat_history.append({
+                    "query": query,
+                    "response": response,
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
+                
+                if "topics" in response:
+                    st.session_state.topic_history.append({
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "topics": response["topics"]
                     })
-
-    # Display chat history
+                
+                if "sentiment" in response:
+                    st.session_state.sentiment_history.append({
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "sentiment": response["sentiment"]
+                    })
+    
+    # Display chat history with enhanced visualization
     for item in reversed(st.session_state.chat_history):
-        with st.container():
-            st.markdown("#### Question:")
-            st.info(item["query"])
-            
-            if "timestamp" in item:
-                st.caption(f"Asked at {item['timestamp']}")
-            
-            st.markdown("#### Analysis:")
-            st.write(item["response"]["answer"])
-            
-            with st.expander("View Sources"):
-                for idx, source in enumerate(item["response"]["sources"], 1):
-                    st.markdown(f"**Source {idx}:**")
-                    st.markdown(f'<div class="source-text">{source["text"]}</div>', 
+        st.markdown('<div class="main-container fade-in">', unsafe_allow_html=True)
+        
+        # Query section
+        st.markdown("### 🗣️ Question")
+        st.info(item["query"])
+        st.caption(f"Asked at {item['timestamp']}")
+        
+        # Answer section with enhanced formatting
+        st.markdown("### 🤖 Analysis")
+        st.write(item["response"]["answer"])
+        
+        # Create tabs for different visualizations
+        tab1, tab2, tab3 = st.tabs(["📚 Sources", "📊 Topics", "😊 Sentiment"])
+        
+        with tab1:
+            for idx, source in enumerate(item["response"]["sources"], 1):
+                with st.container():
+                    st.markdown(f"**Source {idx}**")
+                    st.markdown(f'<div class="source-card">{source["text"]}</div>', 
                               unsafe_allow_html=True)
-                    st.caption(f"Document: {source['document']} | Confidence: {source['confidence']:.2%}")
-                    st.divider()
+                    cols = st.columns(3)
+                    with cols[0]:
+                        st.metric("Confidence", f"{source['confidence']:.1%}")
+                    with cols[1]:
+                        if "sentiment" in source:
+                            st.metric("Sentiment", f"{source['sentiment']:.2f}")
+        
+        with tab2:
+            if "topics" in item["response"]:
+                topic_fig = create_topic_visualization(item["response"]["topics"])
+                if topic_fig:
+                    st.plotly_chart(topic_fig, use_container_width=True)
+        
+        with tab3:
+            if "sentiment" in item["response"]:
+                sentiment_fig = create_sentiment_gauge(item["response"]["sentiment"])
+                st.plotly_chart(sentiment_fig, use_container_width=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
-# Enhanced Insights Dashboard (col2)
 with col2:
-    st.header("Insights Dashboard")
+    # Enhanced analytics dashboard
+    st.markdown('<div class="main-container fade-in">', unsafe_allow_html=True)
+    st.header("📈 Analytics Dashboard")
+    
+    # Summary metrics
     if st.session_state.chat_history:
-        # Summary Statistics
-        with st.container():
-            st.markdown('<div class="stats-container">', unsafe_allow_html=True)
-            st.subheader("Summary Stats")
-            metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Queries", len(st.session_state.chat_history))
+        with col2:
+            avg_confidence = np.mean([
+                item["response"].get("confidence", 0)
+                for item in st.session_state.chat_history
+            ])
+            st.metric("Avg. Confidence", f"{avg_confidence:.1%}")
+        
+        # Sentiment trend
+        if st.session_state.sentiment_history:
+            sentiment_data = pd.DataFrame(st.session_state.sentiment_history)
+            st.line_chart(
+                sentiment_data.set_index("timestamp")["sentiment"],
+                use_container_width=True
+            )
+        
+        # Topic evolution
+        if st.session_state.topic_history:
+            st.markdown("### Topic Evolution")
+            topic_data = []
+            for entry in st.session_state.topic_history:
+                for topic in entry["topics"]:
+                    topic_data.append({
+                        "timestamp": entry["timestamp"],
+                        "topic": topic["name"],
+                        "weight": topic["weight"]
+                    })
             
-            with metrics_col1:
-                st.metric(
-                    "Total Queries",
-                    len(st.session_state.chat_history)
-                )
-            
-            with metrics_col2:
-                # Calculate average confidence
-                confidence_values = [
-                    item["response"].get("confidence", 0.95)
-                    for item in st.session_state.chat_history
-                ]
-                avg_confidence = sum(confidence_values) / len(confidence_values)
-                st.metric(
-                    "Avg Confidence",
-                    f"{avg_confidence:.1%}"
-                )
-            
-            with metrics_col3:
-                # Calculate unique documents referenced
-                unique_docs = set()
-                for item in st.session_state.chat_history:
-                    for source in item["response"]["sources"]:
-                        unique_docs.add(source["document"])
-                st.metric(
-                    "Docs Referenced",
-                    len(unique_docs)
-                )
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        # Enhanced Visualizations
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        st.subheader("Analysis Trends")
-        
-        # Create trend data
-        trend_data = pd.DataFrame([
-            {
-                "Query Number": i + 1,
-                "Timestamp": item.get("timestamp", "N/A"),
-                "Confidence": item["response"].get("confidence", 0.95),
-                "Query": item["query"][:30] + "..." if len(item["query"]) > 30 else item["query"]
-            }
-            for i, item in enumerate(st.session_state.chat_history)
-        ])
-        
-        # Confidence trend chart
-        st.line_chart(
-            trend_data,
-            x="Query Number",
-            y="Confidence",
-            use_container_width=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # Source Analysis
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        st.subheader("Source Distribution")
-        
-        # Calculate source statistics
-        source_counts = {}
-        for item in st.session_state.chat_history:
-            for source in item["response"]["sources"]:
-                doc = source["document"]
-                source_counts[doc] = source_counts.get(doc, 0) + 1
-        
-        # Create source distribution dataframe
-        source_data = pd.DataFrame([
-            {"Document": doc, "Citations": count}
-            for doc, count in source_counts.items()
-        ]).sort_values("Citations", ascending=True)
-        
-        # Plot source distribution
-        st.bar_chart(
-            source_data.set_index("Document"),
-            use_container_width=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # Recent Queries Table
-        st.markdown('<div class="stats-container">', unsafe_allow_html=True)
-        st.subheader("Recent Queries")
-        
-        details_df = pd.DataFrame([
-            {
-                "Time": item.get("timestamp", "N/A"),
-                "Query": item["query"][:40] + "..." if len(item["query"]) > 40 else item["query"],
-                "Confidence": f"{item['response'].get('confidence', 0.95):.1%}",
-                "Sources": len(item["response"]["sources"])
-            }
-            for item in reversed(st.session_state.chat_history[-5:])
-        ])
-        
-        st.dataframe(
-            details_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Time": st.column_config.TextColumn(
-                    "Time",
-                    width="small",
-                ),
-                "Query": st.column_config.TextColumn(
-                    "Query",
-                    width="medium",
-                ),
-                "Confidence": st.column_config.TextColumn(
-                    "Confidence",
-                    width="small",
-                ),
-                "Sources": st.column_config.NumberColumn(
-                    "Sources Used",
-                    width="small",
-                )
-            }
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        # Empty state
-        st.info("Ask some questions to see insights and analytics!")
-        
-        st.markdown("#### Example Questions:")
-        st.markdown("""
-        - What are the main market trends discussed in the reports?
-        - What are the key challenges mentioned?
-        - Which companies are the major players?
-        - What growth projections are mentioned?
-        """)
+            topic_df = pd.DataFrame(topic_data)
+            if not topic_df.empty:
+                topic_chart = alt.Chart(topic_df).mark_area().encode(
+                    x="timestamp:T",
+                    y="weight:Q",
+                    color="topic:N",
+                    tooltip=["topic", "weight"]
+                ).properties(height=300)
+                st.altair_chart(topic_chart, use_container_width=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Footer
 st.divider()
