@@ -122,7 +122,7 @@ st.markdown("""
         font-weight: 600;
     }
     .document-content {
-        color: #01080f !important;
+        color: #d4c3a7 !important;
         background-color: #9c8d79;
         padding: 1rem;
         margin: 0.5rem 0;
