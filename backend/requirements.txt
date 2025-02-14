@@ -26,12 +26,28 @@ numpy>=1.26.3
 plotly>=5.18.0
 altair>=4.0.0
 plotly_express==0.4.0
+wordcloud>=1.9.0
+
+# NLP and Text Analysis
+textblob>=0.17.1
+gensim>=4.3.2
 
 # Development and testing
 python-dotenv>=1.0.0
 pytest>=7.4.4
+pytest-asyncio>=0.23.2
+pytest-cov>=4.1.0
 httpx>=0.26.0
 sqlalchemy>=2.0.25
 
- 
- lark  # Only include if specifically needed
+# Performance and monitoring
+requests>=2.31.0
+cachetools>=5.3.2
+
+# Development tools
+black>=23.12.1
+isort>=5.13.2
+flake8>=7.0.0
+
+# Remove if not needed
+lark  # Only include if specifically needed
