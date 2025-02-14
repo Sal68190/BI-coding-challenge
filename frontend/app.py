@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import altair as alt
 import numpy as np
+import time
 
 # Configure Altair
 alt.data_transformers.disable_max_rows()
@@ -20,132 +21,118 @@ st.set_page_config(
 # Get API URL from environment variable or use default
 API_URL = os.getenv('API_URL', "https://bi-coding-challenge.onrender.com").rstrip('/')
 
-def query_backend(query: str) -> Dict[str, Any]:
-    """Send query to FastAPI backend and return response"""
-    try:
-        response = requests.post(
-            f"{API_URL}/api/analyze",
-            json={"text": query, "filters": None},
-            timeout=30,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.Timeout:
-        st.error("Request timed out. The server might be starting up (cold start). Please try again.")
-        return None
-    except requests.exceptions.ConnectionError:
-        st.error(f"Could not connect to the backend at {API_URL}")
-        return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error communicating with backend: {str(e)}")
-        return None
+def show_loading_state(attempt: int = 1, max_retries: int = 3):
+    """Display informative loading state with progress"""
+    with st.status(f"Processing Query (Attempt {attempt}/{max_retries})", expanded=True) as status:
+        status.write("⚡ Connecting to server...")
+        time.sleep(1)
+        status.write("🔄 Initializing models...")
+        time.sleep(1)
+        status.write("🔍 Retrieving relevant documents...")
+        time.sleep(1)
+        
+        if attempt > 1:
+            status.write("🔥 Server warming up (cold start)...")
+            status.write("⏳ This might take 30-60 seconds...")
+        
+        return status
+
+def query_backend(query: str, max_retries: int = 3) -> Dict[str, Any]:
+    """Send query to FastAPI backend with retry mechanism"""
+    for attempt in range(max_retries):
+        try:
+            status = show_loading_state(attempt + 1, max_retries)
+            
+            response = requests.post(
+                f"{API_URL}/api/analyze",
+                json={"text": query, "filters": None},
+                timeout=30 if attempt == 0 else 60,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                }
+            )
+            
+            if response.status_code == 200:
+                status.update(label="✅ Analysis complete!", state="complete")
+                return response.json()
+            elif response.status_code == 503:
+                status.write("🔄 Server is starting up...")
+                time.sleep(5)
+                continue
+            else:
+                status.update(label="❌ Error occurred", state="error")
+                raise Exception(f"Server returned status code: {response.status_code}")
+                
+        except requests.exceptions.Timeout:
+            if attempt < max_retries - 1:
+                status.write("⏳ Request timed out. Retrying...")
+                time.sleep(5)
+                continue
+            else:
+                st.error("❌ Request timed out after multiple attempts. Please try again.")
+                return None
+                
+        except Exception as e:
+            st.error(f"❌ Error: {str(e)}")
+            return None
+    
+    return None
 
 def check_backend_health():
-    """Check if backend is healthy with detailed debugging"""
+    """Check backend health with detailed feedback"""
     try:
-        health_url = f"{API_URL}/api/health"
-        st.sidebar.caption(f"Checking health at: {health_url}")
-        
-        response = requests.get(
-            health_url,
-            timeout=5,
-            headers={
-                "Accept": "application/json"
-            }
-        )
-        
-        # Debug response details in an expander
-        with st.sidebar.expander("Debug Details", expanded=False):
-            st.write(f"Status Code: {response.status_code}")
-            try:
-                st.write("Response:", response.json())
-            except:
-                st.write("Raw Response:", response.text)
+        response = requests.get(f"{API_URL}/api/health", timeout=5)
         
         if response.status_code == 200:
             try:
                 data = response.json()
-                return data.get("status") == "healthy"
+                status = data.get("status")
+                return status == "healthy", data.get("message", "")
             except:
-                st.sidebar.warning("Backend response wasn't valid JSON")
-                return False
-                
-        return False
-        
-    except requests.exceptions.RequestException as e:
-        with st.sidebar.expander("Connection Error Details", expanded=True):
-            st.error(f"Error: {str(e)}")
-        return False
+                return False, "Invalid response format"
+        else:
+            return False, f"Server returned status {response.status_code}"
+            
+    except requests.exceptions.Timeout:
+        return False, "Server is starting up (timeout)"
+    except requests.exceptions.ConnectionError:
+        return False, "Could not connect to server"
+    except Exception as e:
+        return False, str(e)
 
-# Custom CSS
+# Custom CSS for styling
 st.markdown("""
 <style>
-    .main {
-        padding: 2rem;
-    }
-    .stTextInput > div > div > input {
-        padding: 0.5rem;
-    }
-    .user-query {
-        background-color: #122a40;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-    }
-    .source-text {
-        font-size: 0.9em;
-        padding: 1rem;
-        background-color: #472e3d;
-        border-left: 3px solid #0f0406;
-        margin: 0.5rem 0;
-        color: #030b17;
-        border-radius: 0.25rem;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
     .metric-card {
-        background-color: #303b30;
+        background: linear-gradient(135deg, #1E1E1E 0%, #2D2D2D 100%);
+        padding: 1.2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .source-card {
+        background-color: rgba(255, 255, 255, 0.05);
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 0.5rem 0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-    .stExpander {
-        background-color: #1f2937;
-        border-radius: 0.5rem;
-        border: 1px solid #E5E7EB;
-    }
-    .stExpander .streamlit-expanderContent {
-        background-color: #363c45;
-        color: #414a57;
-    }
-    .confidence-score {
-        color: #384f37;
-        font-weight: 600;
-    }
-    .document-content {
-        color: #d4c3a7;
-        background-color: #9c8d79;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 0.5rem;
-        border: 1px solid #01080f;
-    }
-    .stats-container {
-        background-color: #122a40;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 1rem 0;
+        border-left: 3px solid #00ff00;
     }
     .chart-container {
-        background-color: #1f2937;
+        background-color: rgba(30, 30, 30, 0.6);
         padding: 1rem;
-        border-radius: 0.5rem;
+        border-radius: 10px;
         margin: 1rem 0;
-        border: 1px solid #363c45;
+    }
+    .query-card {
+        background: linear-gradient(135deg, #1E1E1E 0%, #2D2D2D 100%);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border-left: 4px solid #00ff00;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -157,31 +144,35 @@ if 'chat_history' not in st.session_state:
 # Header
 st.title("📊 Market Research Analysis Platform")
 
-# Sidebar content (unchanged)
+# Sidebar content
 with st.sidebar:
-    st.header("Settings")
+    st.header("System Status")
+    is_healthy, message = check_backend_health()
     
-    # Backend status indicator with detailed information
-    st.subheader("Backend Status")
-    backend_status = check_backend_health()
-    
-    if backend_status:
-        st.success("Backend: Connected")
+    if is_healthy:
+        st.success("✅ System Ready")
     else:
-        st.error("Backend: Not Connected")
-        st.warning("""
-        Troubleshooting steps:
-        1. Backend might be in cold start mode (wait 1-2 minutes)
-        2. Check if the URL is correct
-        3. Verify the backend is deployed
-        4. Check for any network issues
-        """)
+        st.warning("⚠️ System Warming Up")
+        st.info(f"Status: {message}")
+        
+        with st.expander("ℹ️ About Cold Starts"):
+            st.markdown("""
+            **What's happening?**
+            - The server is initializing after being inactive
+            - First request may take 30-60 seconds
+            - Subsequent requests will be much faster
+            
+            **Tips:**
+            1. Wait for the system to warm up
+            2. Don't refresh the page
+            3. Your request will be processed automatically
+            """)
     
-    temperature = st.slider("Analysis Depth", 0.0, 1.0, 0.7)
     st.divider()
     
-    # Filters
-    st.header("Filters")
+    # Analysis Settings
+    st.header("Settings")
+    temperature = st.slider("Analysis Depth", 0.0, 1.0, 0.7)
     date_range = st.date_input("Date Range", [])
     
     # Clear history button
@@ -202,10 +193,10 @@ with st.sidebar:
     - 🔍 Semantic search
     """)
 
-# Main content
+# Main content layout
 col1, col2 = st.columns([2, 1])
 
-# Analysis Interface (col1 content unchanged)
+# Analysis Interface
 with col1:
     st.header("Analysis Interface")
     query = st.text_input(
@@ -214,130 +205,125 @@ with col1:
         key="query_input"
     )
     
-    if st.button("Analyze", type="primary", disabled=not backend_status):
+    if st.button("Analyze", type="primary", disabled=not is_healthy):
         if not query:
-            st.warning("Please enter a question to analyze.")
+            st.warning("⚠️ Please enter a question to analyze.")
         else:
-            with st.spinner("Analyzing... This might take a moment on cold start."):
-                response = query_backend(query)
-                if response:
-                    # Add to chat history with timestamp
-                    st.session_state.chat_history.append({
-                        "query": query,
-                        "response": response,
-                        "timestamp": datetime.now().strftime("%H:%M:%S")
-                    })
+            response = query_backend(query)
+            if response:
+                st.toast("✨ Analysis completed successfully!")
+                st.session_state.chat_history.append({
+                    "query": query,
+                    "response": response,
+                    "timestamp": datetime.now().strftime("%H:%M:%S")
+                })
 
     # Display chat history
     for item in reversed(st.session_state.chat_history):
-        with st.container():
-            st.markdown("#### Question:")
-            st.info(item["query"])
-            
-            if "timestamp" in item:
-                st.caption(f"Asked at {item['timestamp']}")
-            
-            st.markdown("#### Analysis:")
-            st.write(item["response"]["answer"])
-            
-            with st.expander("View Sources"):
-                for idx, source in enumerate(item["response"]["sources"], 1):
-                    st.markdown(f"**Source {idx}:**")
-                    st.markdown(f'<div class="source-text">{source["text"]}</div>', 
-                              unsafe_allow_html=True)
-                    st.caption(f"Document: {source['document']} | Confidence: {source['confidence']:.2%}")
-                    st.divider()
+        st.markdown(
+            f"""
+            <div class="query-card">
+                <small style='color: #888;'>{item.get("timestamp", "N/A")}</small>
+                <h4>Question:</h4>
+                <p>{item["query"]}</p>
+                <h4>Analysis:</h4>
+                <p>{item["response"]["answer"]}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        with st.expander("View Sources"):
+            for idx, source in enumerate(item["response"]["sources"], 1):
+                st.markdown(
+                    f"""
+                    <div class="source-card">
+                        <h4>Source {idx}:</h4>
+                        <p>{source["text"]}</p>
+                        <small>Document: {source["document"]} | Confidence: {source["confidence"]:.2%}</small>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-# Enhanced Insights Dashboard (col2)
+# Analytics Dashboard
 with col2:
     st.header("📊 Analytics Hub")
     
     if st.session_state.chat_history:
-        # Calculate key metrics
+        # Calculate metrics
         total_queries = len(st.session_state.chat_history)
         confidence_values = [item["response"].get("confidence", 0.95) 
                            for item in st.session_state.chat_history]
         avg_confidence = sum(confidence_values) / len(confidence_values)
         
-        # Get unique documents and their frequencies
+        # Document frequencies
         document_frequencies = {}
         for item in st.session_state.chat_history:
             for source in item["response"]["sources"]:
                 doc = source["document"]
                 document_frequencies[doc] = document_frequencies.get(doc, 0) + 1
 
-        # Create tabs for different views
-        tab1, tab2, tab3 = st.tabs(["📈 Performance", "🎯 Insights", "📋 History"])
+        # Metrics Overview
+        metrics_cols = st.columns(3)
+        with metrics_cols[0]:
+            st.metric("Queries", total_queries, "Total")
+        with metrics_cols[1]:
+            st.metric("Confidence", f"{avg_confidence:.1%}", "Average")
+        with metrics_cols[2]:
+            st.metric("Documents", len(document_frequencies), "Unique")
+
+        # Charts
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.subheader("Confidence Trends")
         
-        with tab1:
-            # Performance Overview
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Queries", total_queries)
-            with col2:
-                st.metric("Avg Confidence", f"{avg_confidence:.1%}")
-            with col3:
-                st.metric("Documents", len(document_frequencies))
+        trend_data = pd.DataFrame([
+            {
+                "Query": f"Q{i+1}",
+                "Confidence": item["response"].get("confidence", 0.95),
+                "Topic": item["query"]
+            }
+            for i, item in enumerate(st.session_state.chat_history)
+        ])
+        
+        line_chart = alt.Chart(trend_data).mark_line(
+            point=True
+        ).encode(
+            x=alt.X('Query:N', title='Query'),
+            y=alt.Y('Confidence:Q', scale=alt.Scale(domain=[0.5, 1])),
+            tooltip=['Query:N', 'Confidence:Q', 'Topic:N']
+        ).properties(height=200)
+        
+        st.altair_chart(line_chart, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-            # Confidence Trend
-            st.subheader("Confidence Trends")
-            trend_data = pd.DataFrame([
-                {
-                    "Query": f"Q{i+1}",
-                    "Confidence": item["response"].get("confidence", 0.95),
-                    "Topic": item["query"]
-                }
-                for i, item in enumerate(st.session_state.chat_history)
-            ])
-            
-            trend_chart = alt.Chart(trend_data).mark_line(
-                point=True
-            ).encode(
-                x=alt.X('Query:N', title='Query'),
-                y=alt.Y('Confidence:Q', scale=alt.Scale(domain=[0.5, 1])),
-                tooltip=['Query:N', 'Confidence:Q', 'Topic:N']
-            ).properties(height=200)
-            
-            st.altair_chart(trend_chart, use_container_width=True)
+        # Document Usage
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.subheader("Document Usage")
+        
+        source_data = pd.DataFrame([
+            {"Document": doc, "Citations": count}
+            for doc, count in document_frequencies.items()
+        ]).sort_values("Citations", ascending=True)
+        
+        bar_chart = alt.Chart(source_data).mark_bar().encode(
+            x='Citations:Q',
+            y=alt.Y('Document:N', sort='-x'),
+            tooltip=['Document:N', 'Citations:Q']
+        ).properties(height=max(100, len(document_frequencies) * 30))
+        
+        st.altair_chart(bar_chart, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        with tab2:
-            # Document Distribution
-            st.subheader("Document Usage")
-            source_data = pd.DataFrame([
-                {"Document": doc, "Citations": count}
-                for doc, count in document_frequencies.items()
-            ]).sort_values("Citations", ascending=True)
-            
-            bar_chart = alt.Chart(source_data).mark_bar().encode(
-                x='Citations:Q',
-                y=alt.Y('Document:N', sort='-x'),
-                tooltip=['Document:N', 'Citations:Q']
-            ).properties(height=max(100, len(document_frequencies) * 30))
-            
-            st.altair_chart(bar_chart, use_container_width=True)
-
-        with tab3:
-            # Recent Activity
-            st.subheader("Recent Queries")
-            for item in list(reversed(st.session_state.chat_history))[:5]:
-                st.markdown(f"""
-                **Query:** {item["query"]}  
-                **Time:** {item.get("timestamp", "N/A")}  
-                **Confidence:** {item["response"].get("confidence", 0.95):.1%}  
-                **Sources:** {len(item["response"]["sources"])}
-                """)
-                st.divider()
     else:
-        st.info("Ask questions to see analytics and insights!")
-        
-        with st.expander("Example Questions"):
-            st.markdown("""
-            - What are the main market trends discussed in the reports?
-            - What are the key challenges mentioned?
-            - Which companies are the major players?
-            - What growth projections are mentioned?
-            """)
-       
+        st.info("""
+        ### 🚀 Getting Started
+        1. Type your question in the analysis interface
+        2. First query may take longer (cold start)
+        3. System will process automatically
+        4. Results and analytics will appear here
+        """)
+    
 # Footer
 st.divider()
 st.markdown("""
