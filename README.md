@@ -4,11 +4,22 @@ This web application implements a Retrieval-Augmented Generation (RAG) backend s
 ---
 
 ## Key Features
-Retrieval-Augmented Generation (RAG) combines retrieval-based and generation-based methods to provide accurate responses by extracting context from documents and generating relevant answers.
-- **Source traceability:** Displays citations and confidence scores for transparency.
-- **Interactive UI:** Built with Streamlit for an intuitive user experience.
-- **FastAPI backend:** Handles AI processing and query analysis.
-- **Data visualization:** Uses CSS
+
+# Core Capabilities
+
+- Document analysis using RAG and LangChain
+- Semantic search with FAISS vector store
+- Real-time topic modeling and sentiment analysis
+- Interactive data visualizations
+- Cold start prevention system
+
+# Technical Features
+
+- Responsive UI with Streamlit
+- FastAPI backend with async support
+- OpenAI integration for advanced NLP
+- Comprehensive test coverage
+- Performance optimized with caching
 
 ---
 
@@ -18,6 +29,39 @@ Retrieval-Augmented Generation (RAG) combines retrieval-based and generation-bas
 - **Models used**: LangChain, OpenAI API
 - **Vector Store:** FAISS
 - **PDF Processing:** LangChain PyPDFLoader
+
+---
+
+## Development
+
+# Backend Development
+The backend is built with FastAPI and includes:
+- Async request handling
+- RAG implementation with LangChain
+- FAISS vector store for document retrieval
+- Automatic cold start prevention
+
+# Frontend Development
+The frontend uses Streamlit and features:
+- Interactive visualizations with Plotly
+- Real-time analytics dashboard
+- Responsive design
+- Session state management
+
+# Performance Optimization
+The platform includes several performance optimizations:
+- Cold start prevention using keepalive system
+- Efficient vector store management
+- Response caching
+- Optimized state management
+- Lazy loading of components
+
+#Error Handling
+The application implements comprehensive error handling:
+- Backend validation with Pydantic
+- Frontend error feedback
+- Graceful degradation
+- Detailed error logging
 
 ---
 
