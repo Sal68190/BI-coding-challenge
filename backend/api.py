@@ -18,7 +18,7 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["https://rag-challenge.streamlit.app/"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -109,7 +109,7 @@ async def startup_event():
     logger.info("Starting up API server...")
     try:
         # Initialize keepalive system
-        keepalive = KeepAliveSystem(os.getenv('SERVICE_URL', 'http://localhost:8000'))
+        keepalive = KeepAliveSystem(os.getenv('SERVICE_URL', 'https://bi-coding-challenge.onrender.com'))
         keepalive.start()
         logger.info("Keepalive system started")
     except Exception as e:
