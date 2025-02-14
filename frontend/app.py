@@ -4,23 +4,60 @@ import pandas as pd
 from typing import Dict, Any
 from datetime import datetime
 import os
-
-# Handle plotly imports
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-except ImportError:
-    st.error("Error loading plotly. Please make sure it's installed correctly.")
-    st.stop()
-
-# Handle other optional imports
-try:
-    from wordcloud import WordCloud
-except ImportError:
-    WordCloud = None
-
 import numpy as np
-import altair as alt
+
+# Import plotly directly without express
+import plotly.graph_objects as go
+
+def create_sentiment_gauge(sentiment_score):
+    """Create a gauge chart for sentiment visualization"""
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=sentiment_score,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        gauge={
+            'axis': {'range': [-1, 1]},
+            'bar': {'color': "rgba(255, 255, 255, 0.8)"},
+            'steps': [
+                {'range': [-1, -0.3], 'color': "rgba(255, 0, 0, 0.3)"},
+                {'range': [-0.3, 0.3], 'color': "rgba(255, 255, 0, 0.3)"},
+                {'range': [0.3, 1], 'color': "rgba(0, 255, 0, 0.3)"}
+            ]
+        }
+    ))
+    
+    fig.update_layout(
+        title="Sentiment Analysis",
+        template="plotly_dark",
+        height=300
+    )
+    
+    return fig
+
+def create_topic_visualization(topics_data):
+    """Create an interactive topic visualization"""
+    if not topics_data:
+        return None
+        
+    fig = go.Figure()
+    
+    for topic in topics_data:
+        fig.add_trace(go.Bar(
+            name=topic['name'],
+            x=[kw for kw in topic['keywords']],
+            y=[topic['weight']] * len(topic['keywords']),
+            text=[f"{topic['weight']:.2f}"] * len(topic['keywords']),
+            textposition='auto',
+        ))
+    
+    fig.update_layout(
+        title="Topic Distribution",
+        barmode='group',
+        template="plotly_dark",
+        height=400
+    )
+    
+    return fig
 
 # Configure the page with responsive layout
 st.set_page_config(
