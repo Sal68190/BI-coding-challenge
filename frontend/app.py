@@ -1,14 +1,26 @@
 import streamlit as st
 import requests
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 from typing import Dict, Any
 from datetime import datetime
 import os
-import altair as alt
-from wordcloud import WordCloud
+
+# Handle plotly imports
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+except ImportError:
+    st.error("Error loading plotly. Please make sure it's installed correctly.")
+    st.stop()
+
+# Handle other optional imports
+try:
+    from wordcloud import WordCloud
+except ImportError:
+    WordCloud = None
+
 import numpy as np
+import altair as alt
 
 # Configure the page with responsive layout
 st.set_page_config(
