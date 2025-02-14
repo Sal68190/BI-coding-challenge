@@ -263,33 +263,26 @@ with col1:
                     "timestamp": datetime.now().strftime("%H:%M:%S")
                 })
 
-    # Display chat history
+  # Display chat history
     for item in reversed(st.session_state.chat_history):
-        st.markdown(
-            f"""
-            <div class="query-card">
-                <small style='color: #888;'>{item.get("timestamp", "N/A")}</small>
-                <h4>Question:</h4>
-                <p>{item["query"]}</p>
-                <h4>Analysis:</h4>
-                <p>{item["response"]["answer"]}</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        with st.expander("View Sources"):
-            for idx, source in enumerate(item["response"]["sources"], 1):
-                st.markdown(
-                    f"""
-                    <div class="source-card">
-                        <h4>Source {idx}:</h4>
-                        <p>{source["text"]}</p>
-                        <small>Document: {source["document"]} | Confidence: {source["confidence"]:.2%}</small>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+        with st.container():
+            st.markdown("#### Question:")
+            st.info(item["query"])
+            
+            if "timestamp" in item:
+                st.caption(f"Asked at {item['timestamp']}")
+            
+            st.markdown("#### Analysis:")
+            st.write(item["response"]["answer"])
+            
+            with st.expander("View Sources"):
+                for idx, source in enumerate(item["response"]["sources"], 1):
+                    st.markdown(f"**Source {idx}:**")
+                    st.markdown(f'<div class="source-text">{source["text"]}</div>', 
+                              unsafe_allow_html=True)
+                    st.caption(f"Document: {source['document']} | Confidence: {source['confidence']:.2%}")
+                    st.divider()
+
 
 # Analytics Dashboard
 with col2:
