@@ -167,6 +167,22 @@ st.markdown("""
         margin: 1rem 0;
         border: 1px solid #363c45;
     }
+    .status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+    .status-healthy {
+        background-color: #10B981;
+    }
+    .status-warning {
+        background-color: #F59E0B;
+    }
+    .status-error {
+        background-color: #EF4444;
+    }
 </style>
 """, unsafe_allow_html=True)
 
