@@ -1,53 +1,50 @@
 # Core dependencies
-fastapi>=0.104.1
-uvicorn>=0.24.0
-python-multipart>=0.0.6
-pydantic>=2.5.3
-streamlit>=1.18.1
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.3
+streamlit==1.18.1
 
 # LangChain and related
-langchain>=0.1.0
-langchain-community>=0.0.10
-langchain-openai>=0.0.3
-openai>=1.3.7
-tiktoken>=0.5.1
+langchain==0.1.0
+langchain-community==0.0.10
+langchain-openai==0.0.3
+openai==1.3.7
+tiktoken==0.5.1
 
 # Vector stores and embeddings
-chromadb>=0.4.18
-sentence-transformers>=2.2.2
-faiss-cpu>=1.7.4
+chromadb==0.4.18
+sentence-transformers==2.2.2
+faiss-cpu==1.7.4
 
 # Document processing
-pypdf>=3.17.1
+pypdf==3.17.1
 
 # Data processing and visualization
-pandas>=2.2.0
+pandas==2.2.0
 numpy==1.26.3
 plotly==5.18.0
-altair==4.0.0
 plotly-express==0.4.1
-wordcloud==1.9.0
+altair==4.0.0
+wordcloud==1.9.4  # Updated to latest available version
 
 # NLP and Text Analysis
-textblob>=0.17.1
-gensim>=4.3.2
+textblob==0.17.1
+gensim==4.3.2
 
 # Development and testing
-python-dotenv>=1.0.0
-pytest>=7.4.4
-pytest-asyncio>=0.23.2
-pytest-cov>=4.1.0
-httpx>=0.26.0
-sqlalchemy>=2.0.25
+python-dotenv==1.0.0
+pytest==7.4.4
+pytest-asyncio==0.23.2
+pytest-cov==4.1.0
+httpx==0.26.0
+sqlalchemy==2.0.25
 
 # Performance and monitoring
-requests>=2.31.0
-cachetools>=5.3.2
+requests==2.31.0
+cachetools==5.3.2
 
 # Development tools
-black>=23.12.1
-isort>=5.13.2
-flake8>=7.0.0
-
-# Remove if not needed
-lark  # Only include if specifically needed
+black==23.12.1
+isort==5.13.2
+flake8==7.0.0
