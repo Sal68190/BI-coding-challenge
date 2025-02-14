@@ -186,10 +186,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-
 # Header
 st.title("📊 Market Research Analysis Platform")
 
